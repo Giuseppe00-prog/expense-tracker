@@ -1,18 +1,21 @@
-import json
 import pytest
+import sqlite3
 from main import mostra_totale, elabora_aggiungi_spesa
 from spesa import Spesa
-from gestione_spese import aggiungi_spesa, rimuovi_spesa, salva_spese, carica_spese
+from gestione_spese import aggiungi_spesa, rimuovi_spesa
 from unittest.mock import Mock
 from decimal import Decimal
+from database import crea_database, inserisci_spesa, leggi_spese
 
 @pytest.fixture
 def lista_spese():
     return [
-        Spesa("Spesa 1", "Casa", Decimal("10.00")),
-        Spesa("Spesa 2", "Cibo", Decimal("20.00")),
-        Spesa("Spesa 3", "Svago", Decimal("15.00")),
+        Spesa("Spesa 1", "Casa", Decimal("10.00"), 1),
+        Spesa("Spesa 2", "Cibo", Decimal("20.00"), 2),
+        Spesa("Spesa 3", "Svago", Decimal("15.00"), 3),
     ]
+
+# TEST VISUALIZZAZIONE E CALCOLI
 
 def test_mostra_totale(lista_spese):
 
@@ -20,103 +23,34 @@ def test_mostra_totale(lista_spese):
 
     assert risultato == 45
 
-def test_aggiungi_spesa(monkeypatch, tmp_path):
+#TEST AGGIUNTA SPESA
+
+def test_aggiungi_spesa(tmp_path):
+    percorso_db_tmp = tmp_path / "spese.db"
+    crea_database(percorso_db_tmp)
+
     spese = []
 
-    monkeypatch.setattr("gestione_spese.salva_spese", lambda spese, path: None)
-    aggiungi_spesa(spese, "Pizza", "Cibo", Decimal("12.00"), tmp_path / 'spese.json')
+    aggiungi_spesa(spese, "Pizza", "Cibo", Decimal("12.00"), percorso_db_tmp)
 
     assert len(spese) == 1
     assert spese[0].descrizione == "Pizza"
     assert spese[0].categoria == "Cibo"
     assert spese[0].importo == Decimal("12.00")
 
-def test_rimuovi_spesa(monkeypatch, lista_spese, tmp_path):
 
-    monkeypatch.setattr("gestione_spese.salva_spese", lambda spese, path: None)
-    rimuovi_spesa(lista_spese, 2, tmp_path / 'spese.json')
-    assert len(lista_spese) == 2
-    assert lista_spese[0].descrizione == "Spesa 1"
-    assert lista_spese[1].descrizione == "Spesa 3"
-
-def test_rimuovi_spesa_indice_non_valido(monkeypatch, lista_spese, tmp_path):
-
-    monkeypatch.setattr("gestione_spese.salva_spese", lambda spese, path: None)
+def test_aggiungi_spesa_importo_negativo(lista_spese):
 
     with pytest.raises(ValueError):
-        rimuovi_spesa(lista_spese, 0, tmp_path / 'spese.json')
+        aggiungi_spesa(lista_spese, "Pizza", "Cibo", Decimal("-2.00"))
 
+def test_aggiungi_spesa_descrizione_vuota(lista_spese):
     with pytest.raises(ValueError):
-        rimuovi_spesa(lista_spese, 4, tmp_path / 'spese.json')
+        aggiungi_spesa(lista_spese, "", "Cibo", Decimal("10.00"))
 
-def test_salva_spesa(tmp_path, lista_spese):
-    percorso_file = tmp_path / "spese.json"
-
-    salva_spese(lista_spese, percorso_file)
-
-    with open(percorso_file, "r") as file:
-        spese_scritte = json.load(file)
-
-    assert len(spese_scritte) == 3
-    assert spese_scritte[0]["descrizione"] == "Spesa 1"
-    assert spese_scritte[1]["descrizione"] == "Spesa 2"
-    assert spese_scritte[2]["descrizione"] == "Spesa 3"
-
-def test_carica_spesa(tmp_path):
-    dati = [
-        {
-            "descrizione": "Spesa 1",
-            "categoria": "Casa",
-            "importo": "10.00"
-        },
-        {
-            "descrizione": "Spesa 2",
-            "categoria": "Cibo",
-            "importo": "20.00"
-        }
-    ]
-
-    percorso_file = tmp_path / "spese.json"
-
-    with open(percorso_file, "w") as file:
-        json.dump(dati, file)
-
-    spese = carica_spese(percorso_file)
-
-    assert len(spese) == 2
-    assert isinstance(spese[0], Spesa)
-    assert isinstance(spese[1], Spesa)
-    assert spese[0].descrizione == "Spesa 1"
-    assert spese[0].categoria == "Casa"
-    assert spese[0].importo == Decimal("10.00")
-    assert spese[1].descrizione == "Spesa 2"
-    assert spese[1].categoria == "Cibo"
-    assert spese[1].importo == Decimal("20.00")
-
-def test_carica_spese_file_non_esistente(tmp_path):
-    spese = carica_spese(tmp_path / "test.json")
-
-    assert spese == []
-
-def test_aggiungi_spesa_importo_negativo(lista_spese, tmp_path):
+def test_aggiungi_spesa_categoria_vuota(lista_spese):
     with pytest.raises(ValueError):
-        aggiungi_spesa(lista_spese, "Pizza", "Cibo", Decimal("-2.00"), tmp_path / 'spese.json')
-
-def test_aggiungi_spesa_descrizione_vuota(lista_spese, tmp_path):
-    with pytest.raises(ValueError):
-        aggiungi_spesa(lista_spese, "", "Cibo", Decimal("10.00"), tmp_path / 'spese.json')
-
-def test_aggiungi_spesa_categoria_vuota(lista_spese, tmp_path):
-    with pytest.raises(ValueError):
-        aggiungi_spesa(lista_spese, "Pizza", "", Decimal("10.00"), tmp_path / 'spese.json')
-
-def test_spesa_descrizione_solo_spazi():
-    with pytest.raises(ValueError):
-        Spesa("          ", "Cibo", Decimal("5.00"))
-
-def test_spesa_categoria_solo_spazi():
-    with pytest.raises(ValueError):
-        Spesa("Pizza","          ", Decimal("5.00"))
+        aggiungi_spesa(lista_spese, "Pizza", "", Decimal("10.00"))
 
 def test_elabora_aggiungi_spesa(monkeypatch):
     spese = []
@@ -138,8 +72,7 @@ def test_elabora_aggiungi_spesa(monkeypatch):
         spese,
         "Pizza",
         "Cibo",
-        Decimal("10.00"),
-        "spese.json"
+        Decimal("10.00")
     )
 
 def test_aggiungi_spesa_errore(monkeypatch, capsys):
@@ -160,3 +93,111 @@ def test_aggiungi_spesa_errore(monkeypatch, capsys):
     captured = capsys.readouterr()
 
     assert "Inserisci una descrizione" in captured.out
+
+#TEST VALIDAZIONE SPESA
+def test_spesa_descrizione_solo_spazi():
+    with pytest.raises(ValueError):
+        Spesa("          ", "Cibo", Decimal("5.00"))
+
+def test_spesa_categoria_solo_spazi():
+    with pytest.raises(ValueError):
+        Spesa("Pizza","          ", Decimal("5.00"))
+
+
+
+# TEST OPERAZIONI DATABASE
+def test_crea_database(tmp_path):
+    percorso_db_tmp = tmp_path / "spese.db"
+
+    crea_database(percorso_db_tmp)
+
+    with sqlite3.connect(percorso_db_tmp) as connessione:
+        risultato = connessione.execute('SELECT name FROM sqlite_master WHERE type = "table"')
+        tabelle = risultato.fetchall()
+        esiste_tabella_spese = any(t[0] == 'spese' for t in tabelle)
+        assert  esiste_tabella_spese
+
+def test_inserisci_spesa(tmp_path):
+    percorso_db_tmp = tmp_path / "spese.db"
+
+    crea_database(percorso_db_tmp)
+
+    spesa = Spesa("Pizza", "Cibo", Decimal("12.50"))
+
+    id_generato = inserisci_spesa(spesa, percorso_db_tmp)
+
+    assert id_generato is not None
+    assert isinstance(id_generato, int)
+
+    with sqlite3.connect(percorso_db_tmp) as connessione:
+        risultato = connessione.execute('SELECT * from spese')
+        riga = risultato.fetchone()
+        assert riga[0] == id_generato
+        assert riga[1] == spesa.descrizione
+        assert riga[2] == spesa.categoria
+        assert Decimal(str(riga[3])) == spesa.importo
+
+def test_leggi_spese(tmp_path):
+    percorso_db_tmp = tmp_path / "spese.db"
+
+    crea_database(percorso_db_tmp)
+
+    spesa1 = Spesa("Pizza", "Cibo", Decimal("12.50"))
+    spesa2 = Spesa("Cinema", "Svago", Decimal("8.00"))
+
+    id1 = inserisci_spesa(spesa1, percorso_db_tmp)
+    id2 = inserisci_spesa(spesa2, percorso_db_tmp)
+
+    spese = leggi_spese(percorso_db_tmp)
+
+    assert len(spese) == 2
+
+    assert spese[0].id == id1
+    assert spese[0].descrizione == spesa1.descrizione
+    assert spese[0].categoria == spesa1.categoria
+    assert spese[0].importo == spesa1.importo
+
+    assert spese[1].id == id2
+    assert spese[1].descrizione == spesa2.descrizione
+    assert spese[1].categoria == spesa2.categoria
+    assert spese[1].importo == spesa2.importo
+
+def test_rimuovi_spesa(lista_spese, tmp_path):
+
+    percorso_db_tmp = tmp_path / "spese.db"
+
+    crea_database(percorso_db_tmp)
+
+    for spesa in lista_spese:
+        inserisci_spesa(spesa, percorso_db_tmp)
+
+    rimuovi_spesa(lista_spese, 2, percorso_db_tmp)
+
+    spese_db = leggi_spese(percorso_db_tmp)
+
+    assert len(lista_spese) == 2
+
+    assert spese_db[0].id == lista_spese[0].id
+    assert spese_db[0].descrizione == lista_spese[0].descrizione
+    assert spese_db[0].categoria == lista_spese[0].categoria
+    assert spese_db[0].importo == lista_spese[0].importo
+
+    assert spese_db[1].id == lista_spese[1].id
+    assert spese_db[1].descrizione == lista_spese[1].descrizione
+    assert spese_db[1].categoria == lista_spese[1].categoria
+    assert spese_db[1].importo == lista_spese[1].importo
+
+def test_rimuovi_spesa_id_non_esistente(lista_spese, tmp_path):
+    percorso_db_tmp = tmp_path / "spese.db"
+
+    crea_database(percorso_db_tmp)
+
+    for spesa in lista_spese:
+        inserisci_spesa(spesa, percorso_db_tmp)
+
+    rimuovi_spesa(lista_spese, 99, percorso_db_tmp)
+
+    spese_db = leggi_spese(percorso_db_tmp)
+
+    assert len(lista_spese) == 3
+    assert len(spese_db) == 3

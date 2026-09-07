@@ -52,6 +52,23 @@ def leggi_spese(percorso_spesa ="spese.db"):
 
         return lista_spese
 
+def recupera_singola_spesa(id_spesa, percorso_spesa ="spese.db"):
+    with sqlite3.connect(percorso_spesa) as connessione:
+        risultato = connessione.execute("SELECT * FROM spese WHERE id = ?", [id_spesa])
+
+        riga = risultato.fetchone()
+
+        if riga is None:
+            return None
+
+        return Spesa(
+                descrizione=riga[1],
+                categoria=riga[2],
+                importo=Decimal(str(riga[3])),
+                id=riga[0]
+            )
+
+
 def rimuovi_spesa(id_spesa, percorso_spesa="spese.db"):
     """Rimuove dal database la spesa identificata dall'id."""
     with sqlite3.connect(percorso_spesa) as connessione:
@@ -60,8 +77,12 @@ def rimuovi_spesa(id_spesa, percorso_spesa="spese.db"):
             WHERE id = ?
         """
 
-        connessione.execute(istruzione_sql, [id_spesa])
+        risultato = connessione.execute(istruzione_sql, [id_spesa])
 
+        if risultato.rowcount == 0:
+            return False
+        else:
+            return True
 
 if __name__ == "__main__":
     crea_database()

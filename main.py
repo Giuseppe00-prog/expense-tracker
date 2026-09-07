@@ -28,13 +28,13 @@ def elabora_mostra_totale(spese):
     """Visualizza nel terminale il totale delle spese."""
     print(mostra_totale(spese))
 
-def elabora_aggiungi_spesa(spese):
+def elabora_aggiungi_spesa():
     """Acquisisce i dati dall'utente e aggiunge una nuova spesa."""
     descrizione = input("Descrizione: ")
     categoria = input("Categoria: ")
     try:
         importo = Decimal(input("Importo: "))
-        aggiungi_spesa(spese, descrizione, categoria, importo)
+        aggiungi_spesa(descrizione, categoria, importo)
         print('Spesa aggiunta con successo')
     except (ValueError, InvalidOperation):
         print('Inserisci una descrizione e una categoria valida e un importo non negativo')
@@ -46,8 +46,12 @@ def elabora_rimuovi_spesa(spese):
         indice_spesa_da_rimuovere = int(input('Quale spesa vuoi rimuovere? '))
         if not 1 <= indice_spesa_da_rimuovere <= len(spese):
             raise ValueError('Inserisci un numero valido')
-        rimuovi_spesa(spese, spese[indice_spesa_da_rimuovere - 1].id)
-        print('Spesa rimossa con successo')
+        spesa_rimossa = rimuovi_spesa(spese[indice_spesa_da_rimuovere - 1].id)
+        if spesa_rimossa:
+            spese.remove(spese[indice_spesa_da_rimuovere - 1])
+            print('Spesa rimossa con successo')
+        else:
+            print("La spesa non è stata rimossa")
     except ValueError:
         print('Inserisci un numero valido')
 
@@ -67,7 +71,7 @@ def menu(spese):
         else:
             match numero_scelto:
                 case 1:
-                    elabora_aggiungi_spesa(spese)
+                    elabora_aggiungi_spesa()
                 case 2:
                     elabora_mostra_spese(spese)
                 case 3:

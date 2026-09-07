@@ -5,7 +5,7 @@ from spesa import Spesa
 from gestione_spese import aggiungi_spesa, rimuovi_spesa
 from unittest.mock import Mock
 from decimal import Decimal
-from database import crea_database, inserisci_spesa, leggi_spese
+from database import crea_database, inserisci_spesa, leggi_spese, recupera_singola_spesa
 
 @pytest.fixture
 def lista_spese():
@@ -29,31 +29,27 @@ def test_aggiungi_spesa(tmp_path):
     percorso_db_tmp = tmp_path / "spese.db"
     crea_database(percorso_db_tmp)
 
-    spese = []
+    nuova_spesa = aggiungi_spesa("Pizza", "Cibo", Decimal("12.00"), percorso_db_tmp)
 
-    aggiungi_spesa(spese, "Pizza", "Cibo", Decimal("12.00"), percorso_db_tmp)
-
-    assert len(spese) == 1
-    assert spese[0].descrizione == "Pizza"
-    assert spese[0].categoria == "Cibo"
-    assert spese[0].importo == Decimal("12.00")
+    assert nuova_spesa.descrizione == "Pizza"
+    assert nuova_spesa.categoria == "Cibo"
+    assert nuova_spesa.importo == Decimal("12.00")
 
 
-def test_aggiungi_spesa_importo_negativo(lista_spese):
+def test_aggiungi_spesa_importo_negativo():
 
     with pytest.raises(ValueError):
-        aggiungi_spesa(lista_spese, "Pizza", "Cibo", Decimal("-2.00"))
+        aggiungi_spesa("Pizza", "Cibo", Decimal("-2.00"))
 
-def test_aggiungi_spesa_descrizione_vuota(lista_spese):
+def test_aggiungi_spesa_descrizione_vuota():
     with pytest.raises(ValueError):
-        aggiungi_spesa(lista_spese, "", "Cibo", Decimal("10.00"))
+        aggiungi_spesa("", "Cibo", Decimal("10.00"))
 
-def test_aggiungi_spesa_categoria_vuota(lista_spese):
+def test_aggiungi_spesa_categoria_vuota():
     with pytest.raises(ValueError):
-        aggiungi_spesa(lista_spese, "Pizza", "", Decimal("10.00"))
+        aggiungi_spesa("Pizza", "", Decimal("10.00"))
 
 def test_elabora_aggiungi_spesa(monkeypatch):
-    spese = []
 
     input_simulato = iter(["Pizza", "Cibo", Decimal("10.00")])
 
@@ -66,17 +62,15 @@ def test_elabora_aggiungi_spesa(monkeypatch):
         lambda _: next(input_simulato)
     )
 
-    elabora_aggiungi_spesa(spese)
+    elabora_aggiungi_spesa()
 
     aggiungi_spesa_mock.assert_called_once_with(
-        spese,
         "Pizza",
         "Cibo",
         Decimal("10.00")
     )
 
 def test_aggiungi_spesa_errore(monkeypatch, capsys):
-    spese = []
 
     input_simulato = iter(["Pizza", "Cibo", "abc"])
 
@@ -86,7 +80,7 @@ def test_aggiungi_spesa_errore(monkeypatch, capsys):
 
     monkeypatch.setattr("builtins.input", lambda _: next(input_simulato))
 
-    elabora_aggiungi_spesa(spese)
+    elabora_aggiungi_spesa()
 
     aggiungi_spesa_mock.assert_not_called()
 
@@ -171,21 +165,19 @@ def test_rimuovi_spesa(lista_spese, tmp_path):
     for spesa in lista_spese:
         inserisci_spesa(spesa, percorso_db_tmp)
 
-    rimuovi_spesa(lista_spese, 2, percorso_db_tmp)
+    spesa_rimossa = rimuovi_spesa(2, percorso_db_tmp)
 
     spese_db = leggi_spese(percorso_db_tmp)
 
-    assert len(lista_spese) == 2
 
-    assert spese_db[0].id == lista_spese[0].id
-    assert spese_db[0].descrizione == lista_spese[0].descrizione
-    assert spese_db[0].categoria == lista_spese[0].categoria
-    assert spese_db[0].importo == lista_spese[0].importo
+    spesa_ancora_presente = False
+    for spesa in spese_db:
+        if spesa.id == 2:
+            spesa_ancora_presente = True
+            break
 
-    assert spese_db[1].id == lista_spese[1].id
-    assert spese_db[1].descrizione == lista_spese[1].descrizione
-    assert spese_db[1].categoria == lista_spese[1].categoria
-    assert spese_db[1].importo == lista_spese[1].importo
+    assert spesa_rimossa is True
+    assert spesa_ancora_presente is False
 
 def test_rimuovi_spesa_id_non_esistente(lista_spese, tmp_path):
     percorso_db_tmp = tmp_path / "spese.db"
@@ -195,9 +187,34 @@ def test_rimuovi_spesa_id_non_esistente(lista_spese, tmp_path):
     for spesa in lista_spese:
         inserisci_spesa(spesa, percorso_db_tmp)
 
-    rimuovi_spesa(lista_spese, 99, percorso_db_tmp)
+    spesa_rimossa = rimuovi_spesa(99, percorso_db_tmp)
 
     spese_db = leggi_spese(percorso_db_tmp)
 
-    assert len(lista_spese) == 3
-    assert len(spese_db) == 3
+    assert spesa_rimossa is False
+    assert len(spese_db) == len(lista_spese)
+
+def test_recupera_singola_spesa(tmp_path):
+    percorso_db_tmp = tmp_path / "spese.db"
+    crea_database(percorso_db_tmp)
+
+
+    spesa1 = Spesa("Pizza", "Cibo", Decimal("12.50"))
+    spesa2 = Spesa("Cinema", "Svago", Decimal("8.00"))
+
+    id1 = inserisci_spesa(spesa1, percorso_db_tmp)
+    id2 = inserisci_spesa(spesa2, percorso_db_tmp)
+
+    spesa_recuperata = recupera_singola_spesa(id1, percorso_db_tmp)
+
+    assert spesa_recuperata.id == id1
+    assert spesa_recuperata.descrizione == spesa1.descrizione
+    assert spesa_recuperata.categoria == spesa1.categoria
+    assert spesa_recuperata.importo == spesa1.importo
+
+def test_recupera_singola_spesa_id_non_esistente(tmp_path):
+    percorso_db_tmp = tmp_path / "spese.db"
+    crea_database(percorso_db_tmp)
+    spesa_recuperata = recupera_singola_spesa(10, percorso_db_tmp)
+
+    assert spesa_recuperata is None

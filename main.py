@@ -2,9 +2,8 @@
 
 from gestione_spese import aggiungi_spesa, rimuovi_spesa
 from decimal import Decimal, InvalidOperation
-from database import leggi_spese
+from database import leggi_spese, crea_database
 
-lista_spese = leggi_spese()
 
 def mostra_spese(spese):
     """Restituisce l'elenco delle spese formattato per la visualizzazione."""
@@ -16,16 +15,17 @@ def mostra_spese(spese):
 
 def mostra_totale(spese):
     """Calcola e restituisce il totale degli importi delle spese."""
-    totale = sum(spesa.importo for spesa in spese)
-    return totale
+    return sum(spesa.importo for spesa in spese)
 
-def elabora_mostra_spese(spese):
+def elabora_mostra_spese():
     """Visualizza l'elenco delle spese nel terminale."""
+    spese = leggi_spese()
     print('--- SPESE --- \n')
     print(mostra_spese(spese))
 
-def elabora_mostra_totale(spese):
+def elabora_mostra_totale():
     """Visualizza nel terminale il totale delle spese."""
+    spese = leggi_spese()
     print(mostra_totale(spese))
 
 def elabora_aggiungi_spesa():
@@ -39,23 +39,25 @@ def elabora_aggiungi_spesa():
     except (ValueError, InvalidOperation):
         print('Inserisci una descrizione e una categoria valida e un importo non negativo')
 
-def elabora_rimuovi_spesa(spese):
+def elabora_rimuovi_spesa():
     """Mostra le spese e gestisce la rimozione di quella selezionata dall'utente."""
-    elabora_mostra_spese(spese)
+    spese = leggi_spese()
+    print('--- SPESE --- \n')
+    print(mostra_spese(spese))
+
     try:
         indice_spesa_da_rimuovere = int(input('Quale spesa vuoi rimuovere? '))
         if not 1 <= indice_spesa_da_rimuovere <= len(spese):
             raise ValueError('Inserisci un numero valido')
         spesa_rimossa = rimuovi_spesa(spese[indice_spesa_da_rimuovere - 1].id)
         if spesa_rimossa:
-            spese.remove(spese[indice_spesa_da_rimuovere - 1])
             print('Spesa rimossa con successo')
         else:
             print("La spesa non è stata rimossa")
     except ValueError:
         print('Inserisci un numero valido')
 
-def menu(spese):
+def menu():
     """Visualizza il menu principale e gestisce la scelta dell'utente."""
     print('=== EXPENSE TRACKER ===\n')
     print('1. Aggiungi spesa')
@@ -73,19 +75,20 @@ def menu(spese):
                 case 1:
                     elabora_aggiungi_spesa()
                 case 2:
-                    elabora_mostra_spese(spese)
+                    elabora_mostra_spese()
                 case 3:
-                    elabora_mostra_totale(spese)
+                    elabora_mostra_totale()
                 case 4:
-                    elabora_rimuovi_spesa(spese)
+                    elabora_rimuovi_spesa()
             return numero_scelto
     except ValueError:
         print('Inserisci un numero valido')
         return -1
 
 if __name__ == '__main__':
+    crea_database()
     while True:
-        scelta = menu(lista_spese)
+        scelta = menu()
         if scelta == 5:
             break
 

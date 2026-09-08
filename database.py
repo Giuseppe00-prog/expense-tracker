@@ -84,6 +84,20 @@ def rimuovi_spesa(id_spesa, percorso_spesa="spese.db"):
         else:
             return True
 
+def aggiorna_spesa(id_spesa, spesa, percorso_spesa = "spese.db"):
+    """Aggiorna una spesa esistente nel database."""
+    with sqlite3.connect(percorso_spesa) as connessione:
+        istruzione_sql = """
+         UPDATE spese
+         SET descrizione = ?, categoria = ?, importo = ?
+         WHERE id = ?
+         """
+        risultato = connessione.execute(istruzione_sql, [spesa.descrizione, spesa.categoria, float(spesa.importo), id_spesa])
+        if risultato.rowcount == 0:
+            return False
+        else:
+            return True
+
 if __name__ == "__main__":
     crea_database()
     print(leggi_spese())

@@ -42,7 +42,7 @@ expense-tracker/
 * **`spesa.py`** — Defines the `Spesa` data model and its validation rules.
 * **`gestione_spese.py`** — Contains the main operations for adding and removing expenses, coordinating the application logic with the database.
 * **`database.py`** — Handles SQLite database creation and CRUD operations for expenses.
-* **`test_gestione_spese.py`** — Contains the automated tests for the application, including validation, application logic and database operations.
+* **`tests/test_gestione_spese.py`** — Contains the automated tests for the application, including validation, application logic and database operations.
 
 The SQLite database file (`spese.db`) is generated locally when the application is used and is excluded from version control through `.gitignore`.
 

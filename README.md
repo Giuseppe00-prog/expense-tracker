@@ -1,123 +1,175 @@
 # Expense Tracker
 
-A Python CLI application for tracking personal expenses, with SQLite persistence and automated tests.
+A Python expense tracking application with a command-line interface and REST API, SQLite persistence, input validation and automated tests.
+
+The project was developed incrementally, starting from a simple CLI application and evolving into a layered backend application with persistent storage and a REST API built with FastAPI.
 
 ## Features
 
-* Add a new expense
+* Add new expenses
 * Display all recorded expenses
-* Display the total amount of expenses
-* Remove an expense
+* Retrieve a single expense by ID
+* Update existing expenses
+* Remove expenses
+* Calculate the total amount of recorded expenses
 * Persist expenses in a SQLite database
-* Load expenses from the database
-* Validate expense data and user input
+* Validate expense data at both domain and API level
+* REST API with full CRUD operations
+* Automatic API documentation with FastAPI
+* HTTP error handling with appropriate status codes
 * Automated tests with pytest
-* Isolated database tests using temporary databases
+* Isolated database and API tests using temporary SQLite databases
 
 ## Technologies
 
 * Python
+* FastAPI
+* Pydantic
 * SQLite
 * Dataclasses
 * Decimal
 * pytest
+* HTTPX / FastAPI TestClient
+* Uvicorn
 * Git & GitHub
 
 ## Project Structure
 
 ```text
 expense-tracker/
+├── api.py
+├── database.py
+├── gestione_spese.py
 ├── main.py
 ├── spesa.py
-├── gestione_spese.py
-├── database.py
-├── test_gestione_spese.py
+├── requirements.txt
+├── tests/
+│   ├── test_api.py
+│   ├── test_database.py
+│   └── test_gestione_spese.py
 ├── .gitignore
 └── README.md
 ```
 
 ### Main Modules
 
-* **`main.py`** — Handles the command-line interface and user interaction.
-* **`spesa.py`** — Defines the `Spesa` data model and its validation rules.
-* **`gestione_spese.py`** — Contains the main operations for adding and removing expenses, coordinating the application logic with the database.
-* **`database.py`** — Handles SQLite database creation and CRUD operations for expenses.
-* **`tests/test_gestione_spese.py`** — Contains the automated tests for the application, including validation, application logic and database operations.
+* `spesa.py` — Defines the `Spesa` domain model and its validation rules.
+* `database.py` — Handles SQLite database creation and CRUD operations.
+* `gestione_spese.py` — Contains the application logic and coordinates domain objects with database operations.
+* `main.py` — Provides the command-line interface.
+* `api.py` — Exposes the application through a REST API built with FastAPI.
+* `tests/` — Contains automated tests for database operations, application logic and REST API endpoints.
 
-The SQLite database file (`spese.db`) is generated locally when the application is used and is excluded from version control through `.gitignore`.
+The SQLite database file (`spese.db`) is generated locally and excluded from version control.
 
-## How to Run
+## REST API
 
-Clone the repository and move into the project directory:
+The application exposes the following endpoints:
+
+| Method   | Endpoint      | Description                |
+| -------- | ------------- | -------------------------- |
+| `GET`    | `/`           | API information            |
+| `GET`    | `/spese`      | Retrieve all expenses      |
+| `GET`    | `/spese/{id}` | Retrieve an expense by ID  |
+| `POST`   | `/spese`      | Create a new expense       |
+| `PUT`    | `/spese/{id}` | Update an existing expense |
+| `DELETE` | `/spese/{id}` | Delete an expense          |
+
+Invalid input is validated through Pydantic and appropriate HTTP status codes such as `404` and `422` are returned when necessary.
+
+## Installation
+
+Clone the repository:
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/Giuseppe00-prog/expense-tracker.git
 cd expense-tracker
 ```
 
-Create and activate a virtual environment:
+Create a virtual environment:
 
 ```bash
 python -m venv .venv
 ```
 
-On Windows:
+Activate it on Windows:
 
 ```bash
 .venv\Scripts\activate
 ```
 
-Install the test dependency:
+Install the dependencies:
 
 ```bash
-pip install pytest
+pip install -r requirements.txt
 ```
 
-Run the application:
+## Running the CLI
+
+Run:
 
 ```bash
 python main.py
 ```
 
-The SQLite database will be created locally when needed.
+The SQLite database is created automatically when needed.
+
+## Running the REST API
+
+Start the FastAPI development server:
+
+```bash
+uvicorn api:app --reload
+```
+
+The API will then be available locally.
+
+FastAPI automatically provides interactive API documentation at:
+
+```text
+/docs
+```
 
 ## Running Tests
 
-To run the complete automated test suite:
+Run the complete test suite with:
 
 ```bash
 pytest
 ```
 
-The tests use temporary SQLite databases where necessary, so they do not modify the application's local database.
+Tests use temporary SQLite databases where necessary, preventing the application's local database from being modified.
 
-## Testing
+The test suite covers domain validation, database CRUD operations, application logic, API endpoints, HTTP errors and input validation.
 
-The test suite covers:
+## Architecture
 
-* Expense creation
-* Expense validation
-* Adding expenses
-* Removing expenses
-* Handling non-existent expense IDs
-* Total calculation
-* SQLite database creation
-* Inserting expenses into the database
-* Reading expenses from the database
-* Deleting expenses from the database
-* CLI input handling
-* Error handling
-* Mocking user input and application dependencies
+The application separates its responsibilities into different layers:
+
+```text
+CLI / REST API
+      ↓
+Application logic
+      ↓
+Domain model
+      ↓
+Database layer
+      ↓
+SQLite
+```
+
+This structure keeps user interaction, business logic and data persistence separated and makes the application easier to test and evolve.
 
 ## Roadmap
 
-Possible future improvements include:
+Future improvements include:
 
-* Filter expenses by category
-* Search expenses
-* Edit existing expenses
-* Add dates to expenses
-* Monthly expense summaries
-* Improved CLI interface
-* REST API
-* Additional test coverage
+* PostgreSQL persistence
+* Improved SQL and database modelling
+* Expense dates
+* Filtering and searching expenses
+* Monthly summaries
+* React + TypeScript frontend
+* Docker containerization
+* Cloud deployment
+* AI-powered features

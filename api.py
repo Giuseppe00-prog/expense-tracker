@@ -44,7 +44,7 @@ class SpesaRequest(BaseModel):
 
         return valore
 
-class SpesaResponse(BaseModel):
+class OperazioneResponse(BaseModel):
     message: str
     id: int
 
@@ -55,14 +55,15 @@ class SpesaResponseData(BaseModel):
     importo: float
 @app.get("/")
 def read_root():
-    return {"message": "Hello, World!"}
+    """Restituisce un messaggio informativo sull'API."""
+    return {"message": "Expense Tracker API"}
 
 @app.get("/spese", response_model=list[SpesaResponseData])
 def recupero_spese_api():
     return leggi_spese(PERCORSO_DATABASE)
 
 
-@app.post("/spese", status_code=201, response_model=SpesaResponse)
+@app.post("/spese", status_code=201, response_model=OperazioneResponse)
 def aggiungi_spesa_api(spesa: SpesaRequest):
     nuova_spesa = aggiungi_spesa(spesa.descrizione, spesa.categoria, spesa.importo, PERCORSO_DATABASE)
     return {
@@ -70,7 +71,7 @@ def aggiungi_spesa_api(spesa: SpesaRequest):
         "id": nuova_spesa.id
     }
 
-@app.delete("/spese/{id_spesa}", response_model=SpesaResponse)
+@app.delete("/spese/{id_spesa}", response_model=OperazioneResponse)
 def elimina_spesa_api(id_spesa: int):
     spesa_rimossa = rimuovi_spesa(id_spesa, PERCORSO_DATABASE)
     if spesa_rimossa:

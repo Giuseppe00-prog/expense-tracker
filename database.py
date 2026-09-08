@@ -52,7 +52,8 @@ def leggi_spese(percorso_spesa ="spese.db"):
 
         return lista_spese
 
-def recupera_singola_spesa(id_spesa, percorso_spesa ="spese.db"):
+def recupera_singola_spesa(id_spesa, percorso_spesa="spese.db"):
+    """Recupera dal database una spesa tramite il suo id."""
     with sqlite3.connect(percorso_spesa) as connessione:
         risultato = connessione.execute("SELECT * FROM spese WHERE id = ?", [id_spesa])
 
@@ -84,7 +85,7 @@ def rimuovi_spesa(id_spesa, percorso_spesa="spese.db"):
         else:
             return True
 
-def aggiorna_spesa(id_spesa, spesa, percorso_spesa = "spese.db"):
+def aggiorna_spesa(id_spesa, spesa, percorso_spesa="spese.db"):
     """Aggiorna una spesa esistente nel database."""
     with sqlite3.connect(percorso_spesa) as connessione:
         istruzione_sql = """
@@ -97,7 +98,3 @@ def aggiorna_spesa(id_spesa, spesa, percorso_spesa = "spese.db"):
             return False
         else:
             return True
-
-if __name__ == "__main__":
-    crea_database()
-    print(leggi_spese())

@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from decimal import Decimal
 
+
 @dataclass
 class Spesa:
     """Rappresenta una spesa con descrizione, categoria e importo."""

@@ -1,11 +1,16 @@
 """Funzioni per la gestione delle spese."""
 
-from database import inserisci_spesa, rimuovi_spesa as elimina_dal_database, recupera_singola_spesa, aggiorna_spesa
+from database import (
+    inserisci_spesa,
+    rimuovi_spesa as elimina_dal_database,
+    recupera_singola_spesa,
+    aggiorna_spesa
+)
 from spesa import Spesa
 
 
 def aggiungi_spesa(descrizione, categoria, importo, percorso_spesa="spese.db"):
-    """Crea una nuova spesa, la salva nel database e la aggiunge alla lista."""
+    """Crea una nuova spesa, la salva nel database e la restituisce."""
     nuova_spesa = Spesa(descrizione, categoria, importo)
 
     id_nuova_spesa = inserisci_spesa(nuova_spesa, percorso_spesa)
@@ -19,9 +24,11 @@ def rimuovi_spesa(id_spesa, percorso_spesa="spese.db"):
     return elimina_dal_database(id_spesa, percorso_spesa)
 
 def recupera_spesa(id_spesa, percorso_spesa="spese.db"):
+    """Recupera una spesa tramite il suo id."""
     return recupera_singola_spesa(id_spesa, percorso_spesa)
 
 def modifica_spesa(id_spesa, descrizione, categoria, importo, percorso_spesa="spese.db"):
+    """Aggiorna una spesa esistente e restituisce la spesa modificata."""
     spesa = Spesa(descrizione, categoria, importo, id_spesa)
     risultato = aggiorna_spesa(id_spesa, spesa, percorso_spesa)
 

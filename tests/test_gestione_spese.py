@@ -1,128 +1,98 @@
 import pytest
-
-from main import mostra_totale, elabora_aggiungi_spesa
-from spesa import Spesa
-from gestione_spese import aggiungi_spesa, rimuovi_spesa, modifica_spesa
-from unittest.mock import Mock
+from models.categoria import Categoria
+from services.gestione_spese import aggiungi_spesa, modifica_spesa, recupera_spesa, elimina_spesa, SpesaNonTrovataError, \
+    recupera_spese
 from decimal import Decimal
-from database import crea_database, inserisci_spesa
-
-@pytest.fixture
-def lista_spese():
-    return [
-        Spesa("Spesa 1", "Casa", Decimal("10.00"), 1),
-        Spesa("Spesa 2", "Cibo", Decimal("20.00"), 2),
-        Spesa("Spesa 3", "Svago", Decimal("15.00"), 3),
-    ]
+from database import inserisci_categoria, recupera_categoria_per_nome
 
 
-# TEST VISUALIZZAZIONE E CALCOLI
+def test_aggiungi_spesa_categoria_esistente(database_test):
+    categoria = Categoria("Test")
+    categoria.id = inserisci_categoria(categoria)
 
-def test_mostra_totale(lista_spese):
+    spesa = aggiungi_spesa("test", "Test", Decimal("12.50"))
 
-    risultato = mostra_totale(lista_spese)
+    assert spesa.descrizione == "test"
+    assert spesa.categoria == categoria
+    assert spesa.importo == Decimal("12.50")
 
-    assert risultato == 45
+def test_aggiungi_spesa_categoria_non_esistente(database_test):
+    spesa = aggiungi_spesa("test", "Test", Decimal("12.50"))
 
-#TEST AGGIUNTA SPESA
+    assert spesa.descrizione == "test"
+    assert spesa.categoria.nome == "Test"
+    assert spesa.importo == Decimal("12.50")
 
-def test_aggiungi_spesa(tmp_path):
-    percorso_db_tmp = tmp_path / "spese.db"
-    crea_database(percorso_db_tmp)
+def test_recupero_spesa_esistente(database_test):
+    spesa = aggiungi_spesa("test", "Test", Decimal("12.50"))
 
-    nuova_spesa = aggiungi_spesa("Pizza", "Cibo", Decimal("12.00"), percorso_db_tmp)
+    spesa_db = recupera_spesa(spesa.id)
 
-    assert nuova_spesa.descrizione == "Pizza"
-    assert nuova_spesa.categoria == "Cibo"
-    assert nuova_spesa.importo == Decimal("12.00")
+    assert spesa_db is not None
+    assert spesa == spesa_db
+
+def test_recupero_spesa_non_esistente(database_test):
+    with pytest.raises(Exception):
+        recupera_spesa(99)
+
+def test_recupero_spese(database_test):
+    aggiungi_spesa("test", "Test", Decimal("12.50"))
+    aggiungi_spesa("Prova", "Prova", Decimal("22.50"))
+
+    lista_spese = recupera_spese()
+
+    assert len(lista_spese) == 2
+
+    descrizioni = [spesa.descrizione for spesa in lista_spese]
+
+    assert "test" in descrizioni
+    assert "Prova" in descrizioni
 
 
-def test_aggiungi_spesa_importo_negativo():
+def test_elimina_spesa_esistente(database_test):
+    spesa = aggiungi_spesa("test", "Test", Decimal("12.50"))
 
-    with pytest.raises(ValueError):
-        aggiungi_spesa("Pizza", "Cibo", Decimal("-2.00"))
+    risultato = elimina_spesa(spesa.id)
 
-def test_aggiungi_spesa_descrizione_vuota():
-    with pytest.raises(ValueError):
-        aggiungi_spesa("", "Cibo", Decimal("10.00"))
+    assert risultato is True
 
-def test_aggiungi_spesa_categoria_vuota():
-    with pytest.raises(ValueError):
-        aggiungi_spesa("Pizza", "", Decimal("10.00"))
+    with pytest.raises(SpesaNonTrovataError):
+        recupera_spesa(spesa.id)
 
-def test_elabora_aggiungi_spesa(monkeypatch):
+def test_elimina_spesa_non_esistente(database_test):
+    with pytest.raises(SpesaNonTrovataError):
+        elimina_spesa(99)
 
-    input_simulato = iter(["Pizza", "Cibo", Decimal("10.00")])
+def test_modifica_spesa_con_categoria_esistente(database_test):
+    spesa = aggiungi_spesa("test", "Test", Decimal("12.50"))
 
-    aggiungi_spesa_mock = Mock()
+    modifica_spesa(spesa.id, "Nuovo", "Test", Decimal("15.50"))
 
-    monkeypatch.setattr("main.aggiungi_spesa", aggiungi_spesa_mock)
+    spesa_db = recupera_spesa(spesa.id)
 
-    monkeypatch.setattr(
-        "builtins.input",
-        lambda _: next(input_simulato)
-    )
+    assert spesa_db.importo == Decimal("15.50")
+    assert spesa_db.id == spesa.id
+    assert spesa_db.descrizione == "Nuovo"
+    assert spesa_db.categoria == spesa.categoria
 
-    elabora_aggiungi_spesa()
+def test_modifica_spesa_con_categoria_non_esistente(database_test):
+    spesa = aggiungi_spesa("test", "Test", Decimal("12.50"))
 
-    aggiungi_spesa_mock.assert_called_once_with(
-        "Pizza",
-        "Cibo",
-        Decimal("10.00")
-    )
+    modifica_spesa(spesa.id, "Nuovo", "Altro", Decimal("15.50"))
 
-def test_aggiungi_spesa_errore(monkeypatch, capsys):
+    spesa_db = recupera_spesa(spesa.id)
 
-    input_simulato = iter(["Pizza", "Cibo", "abc"])
+    assert spesa_db.importo == Decimal("15.50")
+    assert spesa_db.id == spesa.id
+    assert spesa_db.descrizione == "Nuovo"
+    assert spesa_db.categoria.nome == "Altro"
+    assert spesa_db.categoria.id is not None
 
-    aggiungi_spesa_mock = Mock()
+    categoria_db = recupera_categoria_per_nome("Altro")
 
-    monkeypatch.setattr("main.aggiungi_spesa", aggiungi_spesa_mock)
+    assert categoria_db is not None
+    assert spesa_db.categoria == categoria_db
 
-    monkeypatch.setattr("builtins.input", lambda _: next(input_simulato))
-
-    elabora_aggiungi_spesa()
-
-    aggiungi_spesa_mock.assert_not_called()
-
-    captured = capsys.readouterr()
-
-    assert "Inserisci una descrizione" in captured.out
-
-#TEST VALIDAZIONE SPESA
-def test_spesa_descrizione_solo_spazi():
-    with pytest.raises(ValueError):
-        Spesa("          ", "Cibo", Decimal("5.00"))
-
-def test_spesa_categoria_solo_spazi():
-    with pytest.raises(ValueError):
-        Spesa("Pizza","          ", Decimal("5.00"))
-
-#TEST MODIFICA SPESA
-def test_modifica_spesa(tmp_path):
-    percorso_db_tmp = tmp_path / "spese.db"
-    crea_database(percorso_db_tmp)
-
-    spesa_originale = Spesa(
-        "Pizza",
-        "Cibo",
-        Decimal("12.50")
-    )
-    id_spesa = inserisci_spesa(spesa_originale, percorso_db_tmp)
-
-    risultato = modifica_spesa(id_spesa, "Benzina", "Auto", Decimal("13.00"), percorso_db_tmp)
-
-    assert risultato == Spesa(
-        "Benzina",
-        "Auto",
-        Decimal("13.00"),
-        id_spesa
-    )
-
-def test_modifica_spesa_id_non_valido(tmp_path):
-    percorso_db_tmp = tmp_path / "spese.db"
-    crea_database(percorso_db_tmp)
-
-    risultato = modifica_spesa(99, "Benzina", "Auto", Decimal("13.00"), percorso_db_tmp)
-
-    assert risultato is None
+def test_modifica_spesa_con_id_non_esistente(database_test):
+    with pytest.raises(SpesaNonTrovataError):
+        modifica_spesa(99, "Test", "Test", Decimal("12.50"))

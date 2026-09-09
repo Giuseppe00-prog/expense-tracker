@@ -1,100 +1,193 @@
 import sqlite3
+import os
+import psycopg
+from dotenv import load_dotenv
+
 from decimal import Decimal
 
-from spesa import Spesa
+from models.categoria import Categoria
+from models.spesa import Spesa
 
+load_dotenv()
 
-def crea_database(percorso_spesa="spese.db"):
-    """Crea il database e la tabella spese se non esistono"""
-    with sqlite3.connect(percorso_spesa) as connessione:
-        connessione.execute(
-            """
-            CREATE TABLE IF NOT EXISTS spese (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                descrizione TEXT NOT NULL,
-                categoria TEXT NOT NULL,
-                importo REAL NOT NULL
-            )
-            """
-        )
+def get_connessione():
+    return psycopg.connect(
+        host=os.getenv("DB_HOST"),
+        port=os.getenv("DB_PORT"),
+        dbname=os.getenv("DB_NAME"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD")
+    )
 
+#OPERAZIONI CATEGORIA
 
-def inserisci_spesa(spesa, percorso_spesa="spese.db"):
-    """Inserisce una nuova spesa nel database e restituisce l'id generato."""
-    with sqlite3.connect(percorso_spesa) as connessione:
-        istruzione_sql = """
-            INSERT INTO spese (descrizione, categoria, importo) VALUES (?, ?, ?)
-        """
-        # SQLite salva l'importo come REAL, quindi convertiamo Decimal in float prima dell'inserimento.
-        risultato = connessione.execute(istruzione_sql, [spesa.descrizione, spesa.categoria, float(spesa.importo)])
+def inserisci_categoria(categoria):
+    with get_connessione() as connessione:
+        with connessione.cursor() as cursore:
+            cursore.execute("INSERT INTO categorie (nome) VALUES (%s) RETURNING id;", (categoria.nome,))
 
-        id_generato = risultato.lastrowid
+            risultato = cursore.fetchone()
+            return risultato[0]
 
-        return id_generato
+def aggiorna_categoria(categoria):
+    with get_connessione() as connessione:
+        with connessione.cursor() as cursore:
+            cursore.execute("UPDATE categorie SET nome = %s WHERE id = %s", (categoria.nome, categoria.id))
 
+            return cursore.rowcount > 0
 
-def leggi_spese(percorso_spesa ="spese.db"):
-    """Recupera tutte le spese dal database."""
-    with sqlite3.connect(percorso_spesa) as connessione:
-        risultato = connessione.execute("SELECT * FROM spese")
+def recupera_categoria_per_id(id_categoria):
+    with get_connessione() as connessione:
+        with connessione.cursor() as cursore:
+            cursore.execute("SELECT * FROM categorie WHERE id = %s", (id_categoria,))
+            risultato = cursore.fetchone()
+            if risultato is None:
+                return None
 
-        lista_spese = []
-
-        # Convertiamo il valore letto da SQLite in Decimal per mantenere la gestione precisa degli importi nell'applicazione.
-        for riga in risultato:
-            spesa = Spesa(
-                descrizione=riga[1],
-                categoria=riga[2],
-                importo=Decimal(str(riga[3])),
-                id= riga[0]
-            )
-            lista_spese.append(spesa)
-
-        return lista_spese
-
-def recupera_singola_spesa(id_spesa, percorso_spesa="spese.db"):
-    """Recupera dal database una spesa tramite il suo id."""
-    with sqlite3.connect(percorso_spesa) as connessione:
-        risultato = connessione.execute("SELECT * FROM spese WHERE id = ?", [id_spesa])
-
-        riga = risultato.fetchone()
-
-        if riga is None:
-            return None
-
-        return Spesa(
-                descrizione=riga[1],
-                categoria=riga[2],
-                importo=Decimal(str(riga[3])),
-                id=riga[0]
+            return Categoria(
+                nome=risultato[1],
+                id=risultato[0]
             )
 
+def recupera_categoria_per_nome(nome_categoria):
+    with get_connessione() as connessione:
+        with connessione.cursor() as cursore:
+            cursore.execute("SELECT * FROM categorie WHERE nome = %s", (nome_categoria,))
+            risultato = cursore.fetchone()
+            if risultato is None:
+                return None
 
-def rimuovi_spesa(id_spesa, percorso_spesa="spese.db"):
-    """Rimuove dal database la spesa identificata dall'id."""
-    with sqlite3.connect(percorso_spesa) as connessione:
-        istruzione_sql = """
-            DELETE FROM spese
-            WHERE id = ?
-        """
+            return Categoria(
+                nome=risultato[1],
+                id=risultato[0]
+            )
 
-        risultato = connessione.execute(istruzione_sql, [id_spesa])
+def leggi_categorie():
+    with get_connessione() as connessione:
+        with connessione.cursor() as cursore:
+            cursore.execute("SELECT * FROM categorie")
+            risultato = cursore.fetchall()
 
-        if risultato.rowcount == 0:
-            return False
-        else:
-            return True
+            lista_categorie = []
+            for res in risultato:
+                lista_categorie.append(Categoria(nome=res[1], id=res[0]))
 
-def aggiorna_spesa(id_spesa, spesa, percorso_spesa="spese.db"):
-    """Aggiorna una spesa esistente nel database."""
-    with sqlite3.connect(percorso_spesa) as connessione:
-        istruzione_sql = """
-         UPDATE spese
-         SET descrizione = ?, categoria = ?, importo = ?
-         WHERE id = ?
-         """
-        risultato = connessione.execute(istruzione_sql, [spesa.descrizione, spesa.categoria, float(spesa.importo), id_spesa])
-        if risultato.rowcount == 0:
-            return False
-        else:
-            return True
+            return lista_categorie
+
+def rimuovi_categoria(id_categoria):
+    with get_connessione() as connessione:
+        with connessione.cursor() as cursore:
+            cursore.execute("DELETE FROM categorie WHERE id = %s", (id_categoria,))
+
+            return cursore.rowcount > 0
+
+#OPERAZIONI SPESA
+def inserisci_spesa(spesa):
+    with get_connessione() as connessione:
+        with connessione.cursor() as cursore:
+            cursore.execute("INSERT INTO spese (descrizione, importo, categoria_id) VALUES (%s, %s, %s) RETURNING id", (spesa.descrizione, spesa.importo, spesa.categoria.id))
+
+            risultato = cursore.fetchone()
+
+            return risultato[0]
+
+def recupera_singola_spesa(id_spesa):
+    with get_connessione() as connessione:
+        with connessione.cursor() as cursore:
+            cursore.execute(
+                """
+                SELECT
+                    s.id,
+                    s.descrizione,
+                    s.importo,
+                    c.id,
+                    c.nome
+                FROM spese AS s 
+                JOIN categorie AS c ON c.id = s.categoria_id
+                WHERE s.id = %s
+                """,
+                (id_spesa,)
+                            )
+
+            risultato = cursore.fetchone()
+
+            if risultato is None:
+                return None
+
+            categoria = Categoria(
+                id = risultato[3],
+                nome = risultato[4]
+            )
+            return Spesa(
+                descrizione=risultato[1],
+                categoria = categoria,
+                importo=risultato[2],
+                id=risultato[0]
+            )
+
+def leggi_spese():
+    with get_connessione() as connessione:
+        with connessione.cursor() as cursore:
+            cursore.execute(
+                """
+                SELECT
+                    s.id,
+                    s.descrizione,
+                    s.importo,
+                    c.id,
+                    c.nome
+                FROM spese AS s
+                JOIN categorie AS c
+                    ON s.categoria_id = c.id
+                """
+            )
+
+            risultati = cursore.fetchall()
+
+            lista_spese = []
+
+            for risultato in risultati:
+                categoria = Categoria(
+                    id=risultato[3],
+                    nome=risultato[4]
+                )
+
+                spesa = Spesa(
+                    descrizione=risultato[1],
+                    categoria=categoria,
+                    importo=risultato[2],
+                    id=risultato[0]
+                )
+
+                lista_spese.append(spesa)
+
+            return lista_spese
+
+def rimuovi_spesa(id_spesa):
+    with get_connessione() as connessione:
+        with connessione.cursor() as cursore:
+            cursore.execute("DELETE FROM spese WHERE id = %s", (id_spesa,))
+
+            return cursore.rowcount > 0
+
+def aggiorna_spesa(spesa):
+    with get_connessione() as connessione:
+        with connessione.cursor() as cursore:
+            cursore.execute(
+                """
+                UPDATE spese
+                SET
+                    descrizione = %s,
+                    importo = %s,
+                    categoria_id = %s
+                WHERE id = %s
+                """,
+                (
+                    spesa.descrizione,
+                    spesa.importo,
+                    spesa.categoria.id,
+                    spesa.id
+                )
+            )
+
+            return cursore.rowcount > 0

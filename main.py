@@ -1,8 +1,8 @@
 """Interfaccia a riga di comando per la gestione delle spese."""
 
-from gestione_spese import aggiungi_spesa, rimuovi_spesa
+from services.gestione_spese import aggiungi_spesa, rimuovi_spesa
 from decimal import Decimal, InvalidOperation
-from database import leggi_spese, crea_database
+from database import leggi_spese
 
 
 def mostra_spese(spese):

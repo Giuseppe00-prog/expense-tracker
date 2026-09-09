@@ -1,170 +1,211 @@
-import sqlite3
+import pytest
+from psycopg.errors import UniqueViolation
 from decimal import Decimal
 
-import pytest
+from database import inserisci_categoria, recupera_categoria_per_id, recupera_categoria_per_nome, leggi_categorie, rimuovi_categoria, aggiorna_categoria, inserisci_spesa, leggi_spese, recupera_singola_spesa, aggiorna_spesa, rimuovi_spesa
+from models.categoria import Categoria
+from models.spesa import Spesa
 
-import gestione_spese
-from database import crea_database, inserisci_spesa, leggi_spese, recupera_singola_spesa, aggiorna_spesa
-from spesa import Spesa
+#TEST CATEGORIA
 
-@pytest.fixture
-def lista_spese():
-    return [
-        Spesa("Spesa 1", "Casa", Decimal("10.00"), 1),
-        Spesa("Spesa 2", "Cibo", Decimal("20.00"), 2),
-        Spesa("Spesa 3", "Svago", Decimal("15.00"), 3),
-    ]
+def test_inserisci_categoria(database_test):
+    categoria = Categoria("Test")
 
-def test_crea_database(tmp_path):
-    percorso_db_tmp = tmp_path / "spese.db"
+    id_categoria = inserisci_categoria(categoria)
 
-    crea_database(percorso_db_tmp)
+    assert id_categoria is not None
 
-    with sqlite3.connect(percorso_db_tmp) as connessione:
-        risultato = connessione.execute('SELECT name FROM sqlite_master WHERE type = "table"')
-        tabelle = risultato.fetchall()
-        esiste_tabella_spese = any(t[0] == 'spese' for t in tabelle)
-        assert  esiste_tabella_spese
+    categoria_db = recupera_categoria_per_id(id_categoria)
 
-def test_inserisci_spesa(tmp_path):
-    percorso_db_tmp = tmp_path / "spese.db"
+    assert categoria_db.nome == categoria.nome
+    assert categoria_db.id == id_categoria
 
-    crea_database(percorso_db_tmp)
+def test_recupera_categoria_per_id_non_esistente(database_test):
+    categoria_db = recupera_categoria_per_id(99)
 
-    spesa = Spesa("Pizza", "Cibo", Decimal("12.50"))
+    assert categoria_db is None
 
-    id_generato = inserisci_spesa(spesa, percorso_db_tmp)
+def test_recupera_categoria_per_nome(database_test):
+    categoria = Categoria("Test")
 
-    assert id_generato is not None
-    assert isinstance(id_generato, int)
+    id_categoria = inserisci_categoria(categoria)
 
-    with sqlite3.connect(percorso_db_tmp) as connessione:
-        risultato = connessione.execute('SELECT * from spese')
-        riga = risultato.fetchone()
-        assert riga[0] == id_generato
-        assert riga[1] == spesa.descrizione
-        assert riga[2] == spesa.categoria
-        assert Decimal(str(riga[3])) == spesa.importo
+    categoria_db = recupera_categoria_per_nome(categoria.nome)
 
-def test_leggi_spese(tmp_path):
-    percorso_db_tmp = tmp_path / "spese.db"
+    assert categoria_db.nome == categoria.nome
+    assert categoria_db.id == id_categoria
 
-    crea_database(percorso_db_tmp)
+def test_recupera_categoria_per_nome_non_esistente(database_test):
+    categoria_db = recupera_categoria_per_nome("abc")
 
-    spesa1 = Spesa("Pizza", "Cibo", Decimal("12.50"))
-    spesa2 = Spesa("Cinema", "Svago", Decimal("8.00"))
+    assert categoria_db is None
 
-    id1 = inserisci_spesa(spesa1, percorso_db_tmp)
-    id2 = inserisci_spesa(spesa2, percorso_db_tmp)
+def test_leggi_categorie(database_test):
+    inserisci_categoria(Categoria("Cibo"))
+    inserisci_categoria(Categoria("Auto"))
 
-    spese = leggi_spese(percorso_db_tmp)
+    categorie = leggi_categorie()
 
-    assert len(spese) == 2
+    assert len(categorie) == 2
 
-    assert spese[0].id == id1
-    assert spese[0].descrizione == spesa1.descrizione
-    assert spese[0].categoria == spesa1.categoria
-    assert spese[0].importo == spesa1.importo
+    for categoria in categorie:
+        assert isinstance(categoria, Categoria)
 
-    assert spese[1].id == id2
-    assert spese[1].descrizione == spesa2.descrizione
-    assert spese[1].categoria == spesa2.categoria
-    assert spese[1].importo == spesa2.importo
+    nomi = [categoria.nome for categoria in categorie]
 
-def test_rimuovi_spesa(lista_spese, tmp_path):
+    assert "Cibo" in nomi
+    assert "Auto" in nomi
 
-    percorso_db_tmp = tmp_path / "spese.db"
+def test_rimuovi_categoria(database_test):
+    categoria = Categoria("Test")
 
-    crea_database(percorso_db_tmp)
+    id_categoria = inserisci_categoria(categoria)
 
-    for spesa in lista_spese:
-        inserisci_spesa(spesa, percorso_db_tmp)
+    risultato = rimuovi_categoria(id_categoria)
 
-    spesa_rimossa = gestione_spese.rimuovi_spesa(2, percorso_db_tmp)
+    assert risultato
 
-    spese_db = leggi_spese(percorso_db_tmp)
+    categoria_db = recupera_categoria_per_id(id_categoria)
 
+    assert categoria_db is None
 
-    spesa_ancora_presente = False
-    for spesa in spese_db:
-        if spesa.id == 2:
-            spesa_ancora_presente = True
-            break
+def test_rimuovi_categoria_non_esistente(database_test):
+    risultato = rimuovi_categoria(99)
 
-    assert spesa_rimossa is True
-    assert spesa_ancora_presente is False
+    assert not risultato
 
-def test_rimuovi_spesa_id_non_esistente(lista_spese, tmp_path):
-    percorso_db_tmp = tmp_path / "spese.db"
+def test_inserisci_categoria_duplicata(database_test):
+    inserisci_categoria(Categoria("Test"))
+    with pytest.raises(UniqueViolation):
+        inserisci_categoria(Categoria("Test"))
 
-    crea_database(percorso_db_tmp)
+def test_aggiorna_categoria(database_test):
+    id_categoria = inserisci_categoria(Categoria("Test"))
+    assert aggiorna_categoria(Categoria(id = id_categoria, nome="Cibo"))
 
-    for spesa in lista_spese:
-        inserisci_spesa(spesa, percorso_db_tmp)
+    categoria_db = recupera_categoria_per_id(id_categoria)
 
-    spesa_rimossa = gestione_spese.rimuovi_spesa(99, percorso_db_tmp)
+    assert categoria_db.nome == "Cibo"
+def test_aggiorna_categoria_non_esistente(database_test):
+    assert not aggiorna_categoria(Categoria(id=99, nome="Cibo"))
 
-    spese_db = leggi_spese(percorso_db_tmp)
+#TEST SPESA
 
-    assert spesa_rimossa is False
-    assert len(spese_db) == len(lista_spese)
+def test_inserisci_spesa(database_test):
+    categoria = Categoria("Cibo")
+    id_categoria = inserisci_categoria(categoria)
+    categoria.id = id_categoria
 
-def test_recupera_singola_spesa(tmp_path):
-    percorso_db_tmp = tmp_path / "spese.db"
-    crea_database(percorso_db_tmp)
-
-
-    spesa1 = Spesa("Pizza", "Cibo", Decimal("12.50"))
-    spesa2 = Spesa("Cinema", "Svago", Decimal("8.00"))
-
-    id1 = inserisci_spesa(spesa1, percorso_db_tmp)
-    id2 = inserisci_spesa(spesa2, percorso_db_tmp)
-
-    spesa_recuperata = recupera_singola_spesa(id1, percorso_db_tmp)
-
-    assert spesa_recuperata.id == id1
-    assert spesa_recuperata.descrizione == spesa1.descrizione
-    assert spesa_recuperata.categoria == spesa1.categoria
-    assert spesa_recuperata.importo == spesa1.importo
-
-def test_recupera_singola_spesa_id_non_esistente(tmp_path):
-    percorso_db_tmp = tmp_path / "spese.db"
-    crea_database(percorso_db_tmp)
-    spesa_recuperata = recupera_singola_spesa(10, percorso_db_tmp)
-
-    assert spesa_recuperata is None
-
-def test_aggiorna_spesa(tmp_path):
-    percorso_db_tmp = tmp_path / "spese.db"
-    crea_database(percorso_db_tmp)
-    spesa_originale = Spesa(
-        "Pizza",
-        "Cibo",
-        Decimal("12.50")
+    spesa = Spesa(
+        descrizione="Pizza",
+        categoria=categoria,
+        importo=Decimal("12.50")
     )
-    id_spesa = inserisci_spesa(spesa_originale, percorso_db_tmp)
-    spesa_aggiornata = Spesa(
-        "Benzina",
-        "Auto",
-        Decimal("50.00"),
-        id_spesa
+
+    id_spesa = inserisci_spesa(spesa)
+
+    assert id_spesa > 0
+
+def test_recupera_singola_spesa(database_test):
+    categoria = Categoria("Cibo")
+    id_categoria = inserisci_categoria(categoria)
+    categoria.id = id_categoria
+
+    spesa = Spesa(
+        descrizione="Pizza",
+        categoria=categoria,
+        importo=Decimal("12.50")
     )
-    risultato = aggiorna_spesa(id_spesa, spesa_aggiornata, percorso_db_tmp)
+    id_spesa = inserisci_spesa(spesa)
 
-    assert risultato is True
+    spesa_db = recupera_singola_spesa(id_spesa)
 
-    spesa_recuperata = recupera_singola_spesa(id_spesa, percorso_db_tmp)
+    assert spesa_db.id == id_spesa
+    assert spesa_db.importo == spesa.importo
+    assert spesa_db.descrizione == spesa.descrizione
+    assert spesa_db.categoria.id == spesa.categoria.id
+    assert spesa_db.categoria.nome == spesa.categoria.nome
 
-    assert spesa_recuperata == spesa_aggiornata
+def test_recupera_singola_spesa_id_non_esistente(database_test):
+    spesa_db = recupera_singola_spesa(99)
+    assert spesa_db is None
 
-def test_aggiorna_spesa_id_non_esistente(tmp_path):
-    percorso_db_tmp = tmp_path / "spese.db"
-    crea_database(percorso_db_tmp)
+def test_leggi_spese(database_test):
+    categoria1 = Categoria("Cibo")
+    id_categoria1 = inserisci_categoria(categoria1)
+    categoria1.id = id_categoria1
 
-    risultato = aggiorna_spesa(99, Spesa(
-        "Benzina",
-        "Auto",
-        Decimal("50.00")
-    ), percorso_db_tmp)
+    spesa1 = Spesa(
+        descrizione="Pizza",
+        categoria=categoria1,
+        importo=Decimal("12.50")
+    )
+    id_spesa1 = inserisci_spesa(spesa1)
+    spesa1.id = id_spesa1
 
-    assert risultato is False
+    categoria2 = Categoria("Macchina")
+    id_categoria2 = inserisci_categoria(categoria2)
+    categoria2.id = id_categoria2
+
+    spesa2 = Spesa(
+        descrizione="Benzina",
+        categoria=categoria2,
+        importo=Decimal("50.37")
+    )
+    id_spesa2 = inserisci_spesa(spesa2)
+    spesa2.id = id_spesa2
+
+    lista_spese = [spesa1, spesa2]
+    lista_spese_db = leggi_spese()
+
+    assert len(lista_spese_db) == 2
+    for spesa in lista_spese:
+        assert spesa in lista_spese_db
+
+def test_rimuovi_spesa(database_test):
+    categoria = Categoria("Cibo")
+    id_categoria = inserisci_categoria(categoria)
+    categoria.id = id_categoria
+
+    spesa = Spesa(
+        descrizione="Pizza",
+        categoria=categoria,
+        importo=Decimal("12.50")
+    )
+    id_spesa = inserisci_spesa(spesa)
+    assert rimuovi_spesa(id_spesa)
+    assert recupera_singola_spesa(id_spesa) is None
+
+def test_rimuovi_spesa_non_esistente(database_test):
+    assert not rimuovi_spesa(99)
+
+def test_aggiorna_spesa(database_test):
+    categoria_cibo = Categoria("Cibo")
+    categoria_cibo.id = inserisci_categoria(categoria_cibo)
+
+    categoria_svago = Categoria("Svago")
+    categoria_svago.id = inserisci_categoria(categoria_svago)
+
+    spesa = Spesa(
+        descrizione="Pizza",
+        categoria=categoria_cibo,
+        importo=Decimal("12.50")
+    )
+
+    spesa.id = inserisci_spesa(spesa)
+
+    spesa.descrizione = "Cinema"
+    spesa.importo = Decimal("15.00")
+    spesa.categoria = categoria_svago
+
+    assert aggiorna_spesa(spesa)
+
+    spesa_db = recupera_singola_spesa(spesa.id)
+
+    assert spesa_db.descrizione == "Cinema"
+    assert spesa_db.importo == Decimal("15.00")
+    assert spesa_db.categoria.id == categoria_svago.id
+    assert spesa_db.categoria.nome == "Svago"
+
+def test_aggiorna_spesa_non_esistente(database_test):
+    assert not aggiorna_spesa(Spesa(id=99, descrizione="Panino", categoria=Categoria(id=99, nome="Cibo"), importo=Decimal("12.50")))

@@ -53,9 +53,9 @@ expense-tracker/
 
 ### Main Modules
 
-* `spesa.py` — Defines the `Spesa` domain model and its validation rules.
+* `models/spesa.py` — Defines the `Spesa` domain model and its validation rules.
 * `database.py` — Handles SQLite database creation and CRUD operations.
-* `gestione_spese.py` — Contains the application logic and coordinates domain objects with database operations.
+* `services/gestione_spese.py` — Contains the application logic and coordinates domain objects with database operations.
 * `main.py` — Provides the command-line interface.
 * `api.py` — Exposes the application through a REST API built with FastAPI.
 * `tests/` — Contains automated tests for database operations, application logic and REST API endpoints.

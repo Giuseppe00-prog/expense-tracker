@@ -13,7 +13,7 @@ def test_aggiungi_spesa_categoria_esistente(database_test):
     spesa = aggiungi_spesa("test", "Test", Decimal("12.50"))
 
     assert spesa.descrizione == "test"
-    assert spesa.categoria == categoria
+    assert spesa.categoria.nome == "Test"
     assert spesa.importo == Decimal("12.50")
 
 def test_aggiungi_spesa_categoria_non_esistente(database_test):
@@ -29,7 +29,9 @@ def test_recupero_spesa_esistente(database_test):
     spesa_db = recupera_spesa(spesa.id)
 
     assert spesa_db is not None
-    assert spesa == spesa_db
+    assert spesa_db.descrizione == "test"
+    assert spesa_db.categoria.nome == "Test"
+    assert spesa_db.importo == Decimal("12.50")
 
 def test_recupero_spesa_non_esistente(database_test):
     with pytest.raises(Exception):
@@ -73,7 +75,7 @@ def test_modifica_spesa_con_categoria_esistente(database_test):
     assert spesa_db.importo == Decimal("15.50")
     assert spesa_db.id == spesa.id
     assert spesa_db.descrizione == "Nuovo"
-    assert spesa_db.categoria == spesa.categoria
+    assert spesa_db.categoria.nome == "Test"
 
 def test_modifica_spesa_con_categoria_non_esistente(database_test):
     spesa = aggiungi_spesa("test", "Test", Decimal("12.50"))
@@ -91,7 +93,7 @@ def test_modifica_spesa_con_categoria_non_esistente(database_test):
     categoria_db = recupera_categoria_per_nome("Altro")
 
     assert categoria_db is not None
-    assert spesa_db.categoria == categoria_db
+    assert spesa_db.categoria.nome == categoria_db.nome
 
 def test_modifica_spesa_con_id_non_esistente(database_test):
     with pytest.raises(SpesaNonTrovataError):

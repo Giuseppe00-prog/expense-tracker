@@ -1,7 +1,6 @@
 import pytest
-from psycopg.errors import UniqueViolation
+from sqlalchemy.exc import IntegrityError
 from decimal import Decimal
-
 from database import inserisci_categoria, recupera_categoria_per_id, recupera_categoria_per_nome, leggi_categorie, rimuovi_categoria, aggiorna_categoria, inserisci_spesa, leggi_spese, recupera_singola_spesa, aggiorna_spesa, rimuovi_spesa
 from models.categoria import Categoria
 from models.spesa import Spesa
@@ -9,7 +8,7 @@ from models.spesa import Spesa
 #TEST CATEGORIA
 
 def test_inserisci_categoria(database_test):
-    categoria = Categoria("Test")
+    categoria = Categoria(nome="Test2")
 
     id_categoria = inserisci_categoria(categoria)
 
@@ -26,7 +25,7 @@ def test_recupera_categoria_per_id_non_esistente(database_test):
     assert categoria_db is None
 
 def test_recupera_categoria_per_nome(database_test):
-    categoria = Categoria("Test")
+    categoria = Categoria("Test3")
 
     id_categoria = inserisci_categoria(categoria)
 
@@ -41,8 +40,8 @@ def test_recupera_categoria_per_nome_non_esistente(database_test):
     assert categoria_db is None
 
 def test_leggi_categorie(database_test):
-    inserisci_categoria(Categoria("Cibo"))
-    inserisci_categoria(Categoria("Auto"))
+    inserisci_categoria(Categoria("Cibo1"))
+    inserisci_categoria(Categoria("Auto1"))
 
     categorie = leggi_categorie()
 
@@ -53,11 +52,11 @@ def test_leggi_categorie(database_test):
 
     nomi = [categoria.nome for categoria in categorie]
 
-    assert "Cibo" in nomi
-    assert "Auto" in nomi
+    assert "Cibo1" in nomi
+    assert "Auto1" in nomi
 
 def test_rimuovi_categoria(database_test):
-    categoria = Categoria("Test")
+    categoria = Categoria("Test4")
 
     id_categoria = inserisci_categoria(categoria)
 
@@ -76,7 +75,7 @@ def test_rimuovi_categoria_non_esistente(database_test):
 
 def test_inserisci_categoria_duplicata(database_test):
     inserisci_categoria(Categoria("Test"))
-    with pytest.raises(UniqueViolation):
+    with pytest.raises(IntegrityError):
         inserisci_categoria(Categoria("Test"))
 
 def test_aggiorna_categoria(database_test):
@@ -121,10 +120,10 @@ def test_recupera_singola_spesa(database_test):
     spesa_db = recupera_singola_spesa(id_spesa)
 
     assert spesa_db.id == id_spesa
-    assert spesa_db.importo == spesa.importo
-    assert spesa_db.descrizione == spesa.descrizione
-    assert spesa_db.categoria.id == spesa.categoria.id
-    assert spesa_db.categoria.nome == spesa.categoria.nome
+    assert spesa_db.importo == Decimal("12.50")
+    assert spesa_db.descrizione == "Pizza"
+    assert spesa_db.categoria.id == id_categoria
+    assert spesa_db.categoria.nome == "Cibo"
 
 def test_recupera_singola_spesa_id_non_esistente(database_test):
     spesa_db = recupera_singola_spesa(99)
@@ -141,7 +140,6 @@ def test_leggi_spese(database_test):
         importo=Decimal("12.50")
     )
     id_spesa1 = inserisci_spesa(spesa1)
-    spesa1.id = id_spesa1
 
     categoria2 = Categoria("Macchina")
     id_categoria2 = inserisci_categoria(categoria2)
@@ -153,14 +151,15 @@ def test_leggi_spese(database_test):
         importo=Decimal("50.37")
     )
     id_spesa2 = inserisci_spesa(spesa2)
-    spesa2.id = id_spesa2
 
-    lista_spese = [spesa1, spesa2]
     lista_spese_db = leggi_spese()
 
     assert len(lista_spese_db) == 2
-    for spesa in lista_spese:
-        assert spesa in lista_spese_db
+
+    ids = [spesa.id for spesa in lista_spese_db]
+
+    assert id_spesa1 in ids
+    assert id_spesa2 in ids
 
 def test_rimuovi_spesa(database_test):
     categoria = Categoria("Cibo")

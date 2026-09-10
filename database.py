@@ -1,193 +1,125 @@
-import sqlite3
 import os
-import psycopg
 from dotenv import load_dotenv
-
-from decimal import Decimal
-
 from models.categoria import Categoria
 from models.spesa import Spesa
+from sqlalchemy import create_engine, select
+from sqlalchemy.orm import sessionmaker, selectinload
 
 load_dotenv()
 
-def get_connessione():
-    return psycopg.connect(
-        host=os.getenv("DB_HOST"),
-        port=os.getenv("DB_PORT"),
-        dbname=os.getenv("DB_NAME"),
-        user=os.getenv("DB_USER"),
-        password=os.getenv("DB_PASSWORD")
-    )
+DATABASE_URL = (
+    f"postgresql+psycopg://"
+    f"{os.getenv('DB_USER')}:"
+    f"{os.getenv('DB_PASSWORD')}@"
+    f"{os.getenv('DB_HOST')}:"
+    f"{os.getenv('DB_PORT')}/"
+    f"{os.getenv('DB_NAME')}"
+)
+
+engine = create_engine(DATABASE_URL)
+
+SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
 
 #OPERAZIONI CATEGORIA
 
 def inserisci_categoria(categoria):
-    with get_connessione() as connessione:
-        with connessione.cursor() as cursore:
-            cursore.execute("INSERT INTO categorie (nome) VALUES (%s) RETURNING id;", (categoria.nome,))
+    with SessionLocal() as session:
+        session.add(categoria)
+        session.commit()
+        session.refresh(categoria)
 
-            risultato = cursore.fetchone()
-            return risultato[0]
+        return categoria.id
 
 def aggiorna_categoria(categoria):
-    with get_connessione() as connessione:
-        with connessione.cursor() as cursore:
-            cursore.execute("UPDATE categorie SET nome = %s WHERE id = %s", (categoria.nome, categoria.id))
+    with SessionLocal() as session:
+        categoria_db = session.get(Categoria, categoria.id)
 
-            return cursore.rowcount > 0
+        if categoria_db is None:
+            return False
+
+        categoria_db.nome = categoria.nome
+
+        session.commit()
+
+        return True
 
 def recupera_categoria_per_id(id_categoria):
-    with get_connessione() as connessione:
-        with connessione.cursor() as cursore:
-            cursore.execute("SELECT * FROM categorie WHERE id = %s", (id_categoria,))
-            risultato = cursore.fetchone()
-            if risultato is None:
-                return None
-
-            return Categoria(
-                nome=risultato[1],
-                id=risultato[0]
-            )
+    with SessionLocal() as session:
+        return session.get(Categoria, id_categoria)
 
 def recupera_categoria_per_nome(nome_categoria):
-    with get_connessione() as connessione:
-        with connessione.cursor() as cursore:
-            cursore.execute("SELECT * FROM categorie WHERE nome = %s", (nome_categoria,))
-            risultato = cursore.fetchone()
-            if risultato is None:
-                return None
-
-            return Categoria(
-                nome=risultato[1],
-                id=risultato[0]
-            )
+    with SessionLocal() as session:
+        stmt = select(Categoria).where(
+            Categoria.nome == nome_categoria
+        )
+        return session.scalar(stmt)
 
 def leggi_categorie():
-    with get_connessione() as connessione:
-        with connessione.cursor() as cursore:
-            cursore.execute("SELECT * FROM categorie")
-            risultato = cursore.fetchall()
+    with SessionLocal() as session:
+        stmt = select(Categoria)
 
-            lista_categorie = []
-            for res in risultato:
-                lista_categorie.append(Categoria(nome=res[1], id=res[0]))
-
-            return lista_categorie
+        return list(session.scalars(stmt))
 
 def rimuovi_categoria(id_categoria):
-    with get_connessione() as connessione:
-        with connessione.cursor() as cursore:
-            cursore.execute("DELETE FROM categorie WHERE id = %s", (id_categoria,))
+    with SessionLocal() as session:
+        categoria_db = session.get(Categoria, id_categoria)
 
-            return cursore.rowcount > 0
+        if categoria_db is None:
+            return False
+
+        session.delete(categoria_db)
+        session.commit()
+
+        return True
 
 #OPERAZIONI SPESA
 def inserisci_spesa(spesa):
-    with get_connessione() as connessione:
-        with connessione.cursor() as cursore:
-            cursore.execute("INSERT INTO spese (descrizione, importo, categoria_id) VALUES (%s, %s, %s) RETURNING id", (spesa.descrizione, spesa.importo, spesa.categoria.id))
+    with SessionLocal() as session:
+        categoria_db = session.get(Categoria, spesa.categoria.id)
 
-            risultato = cursore.fetchone()
+        spesa.categoria = categoria_db
 
-            return risultato[0]
+        session.add(spesa)
+        session.commit()
+
+        return spesa.id
 
 def recupera_singola_spesa(id_spesa):
-    with get_connessione() as connessione:
-        with connessione.cursor() as cursore:
-            cursore.execute(
-                """
-                SELECT
-                    s.id,
-                    s.descrizione,
-                    s.importo,
-                    c.id,
-                    c.nome
-                FROM spese AS s 
-                JOIN categorie AS c ON c.id = s.categoria_id
-                WHERE s.id = %s
-                """,
-                (id_spesa,)
-                            )
-
-            risultato = cursore.fetchone()
-
-            if risultato is None:
-                return None
-
-            categoria = Categoria(
-                id = risultato[3],
-                nome = risultato[4]
-            )
-            return Spesa(
-                descrizione=risultato[1],
-                categoria = categoria,
-                importo=risultato[2],
-                id=risultato[0]
-            )
+    with SessionLocal() as session:
+        return session.get(Spesa, id_spesa, options=[selectinload(Spesa.categoria)])
 
 def leggi_spese():
-    with get_connessione() as connessione:
-        with connessione.cursor() as cursore:
-            cursore.execute(
-                """
-                SELECT
-                    s.id,
-                    s.descrizione,
-                    s.importo,
-                    c.id,
-                    c.nome
-                FROM spese AS s
-                JOIN categorie AS c
-                    ON s.categoria_id = c.id
-                """
-            )
-
-            risultati = cursore.fetchall()
-
-            lista_spese = []
-
-            for risultato in risultati:
-                categoria = Categoria(
-                    id=risultato[3],
-                    nome=risultato[4]
-                )
-
-                spesa = Spesa(
-                    descrizione=risultato[1],
-                    categoria=categoria,
-                    importo=risultato[2],
-                    id=risultato[0]
-                )
-
-                lista_spese.append(spesa)
-
-            return lista_spese
+    with SessionLocal() as session:
+        stmt = select(Spesa).options(
+            selectinload(Spesa.categoria)
+        )
+        return list(session.scalars(stmt))
 
 def rimuovi_spesa(id_spesa):
-    with get_connessione() as connessione:
-        with connessione.cursor() as cursore:
-            cursore.execute("DELETE FROM spese WHERE id = %s", (id_spesa,))
+    with SessionLocal() as session:
+        spesa = session.get(Spesa, id_spesa)
 
-            return cursore.rowcount > 0
+        if spesa is None:
+            return False
+
+        session.delete(spesa)
+        session.commit()
+
+        return True
 
 def aggiorna_spesa(spesa):
-    with get_connessione() as connessione:
-        with connessione.cursor() as cursore:
-            cursore.execute(
-                """
-                UPDATE spese
-                SET
-                    descrizione = %s,
-                    importo = %s,
-                    categoria_id = %s
-                WHERE id = %s
-                """,
-                (
-                    spesa.descrizione,
-                    spesa.importo,
-                    spesa.categoria.id,
-                    spesa.id
-                )
-            )
+    with SessionLocal() as session:
+        spesa_db = session.get(Spesa, spesa.id)
 
-            return cursore.rowcount > 0
+        if spesa_db is None:
+            return False
+
+        categoria_db = session.get(Categoria, spesa.categoria.id)
+
+        spesa_db.descrizione = spesa.descrizione
+        spesa_db.importo = spesa.importo
+        spesa_db.categoria = categoria_db
+
+        session.commit()
+
+        return True

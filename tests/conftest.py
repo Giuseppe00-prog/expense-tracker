@@ -1,27 +1,34 @@
-import psycopg
 import pytest
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import sessionmaker
+
 import database
 
 @pytest.fixture
 def database_test(monkeypatch):
-    def get_connessione_test():
-        return psycopg.connect(
-            host="localhost",
-            port=5432,
-            dbname="expense_tracker_test",
-            user="postgres",
-            password=database.os.getenv("DB_PASSWORD")
+    database_url_test = (
+            f"postgresql+psycopg://"
+            f"postgres:"
+            f"{database.os.getenv('DB_PASSWORD')}@"
+            f"localhost:5432/"
+            f"expense_tracker_test"
         )
+
+    engine_test = create_engine(database_url_test)
+
+    SessionTest = sessionmaker(bind=engine_test, expire_on_commit=False)
 
     monkeypatch.setattr(
         database,
-        "get_connessione",
-        get_connessione_test
+        "SessionLocal",
+        SessionTest
     )
 
-    with get_connessione_test() as connessione:
-        with connessione.cursor() as cursore:
-            cursore.execute("DELETE FROM spese")
-            cursore.execute("DELETE FROM categorie")
+    with SessionTest() as session:
+        session.execute(text("DELETE FROM spese"))
+        session.execute(text("DELETE FROM categorie"))
+        session.commit()
 
     yield
+
+    engine_test.dispose()

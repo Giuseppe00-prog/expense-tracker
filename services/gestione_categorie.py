@@ -1,5 +1,4 @@
-from psycopg.errors import ForeignKeyViolation
-
+from sqlalchemy.exc import IntegrityError
 from database import recupera_categoria_per_nome, inserisci_categoria, recupera_categoria_per_id, aggiorna_categoria, leggi_categorie, rimuovi_categoria
 from models.categoria import Categoria
 
@@ -77,7 +76,7 @@ def elimina_categoria(id_categoria):
         raise CategoriaNonTrovataError("La categoria con id {} non esiste".format(id_categoria))
     try:
         return rimuovi_categoria(id_categoria)
-    except ForeignKeyViolation:
+    except IntegrityError:
         raise CategoriaInUsoError(
             "La categoria {} non può essere eliminata perché è utilizzata da una o più spese"
         )

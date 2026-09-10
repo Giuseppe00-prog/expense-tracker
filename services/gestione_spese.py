@@ -7,7 +7,6 @@ from database import (
     aggiorna_spesa, leggi_spese
 )
 from models.spesa import Spesa
-from models.categoria import Categoria
 from services.gestione_categorie import (
     aggiungi_categoria,
     trova_categoria_tramite_nome,

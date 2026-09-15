@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, field_validator
 from decimal import Decimal
 from services.gestione_spese import (
@@ -8,7 +9,20 @@ from services.gestione_spese import (
     elimina_spesa,
     recupera_spese, SpesaNonTrovataError
 )
+
 app = FastAPI()
+
+origins = [
+    "http://localhost:5173"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
 
 class SpesaRequest(BaseModel):
     descrizione: str

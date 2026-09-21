@@ -4,10 +4,12 @@ import Header from "./components/Header";
 import type {NuovaSpesa, Spesa} from "./types/Spesa"
 import ListaSpese from "./components/ListaSpese"
 import FormSpesa from "./components/FormSpesa";
-import {getSpese, creaSpesa, rimuoviSpesa, aggiornaSpesa} from "./services/api";
+import {getSpese, creaSpesa, rimuoviSpesa, aggiornaSpesa, getCategorie} from "./services/api";
+import type {Categoria} from "./types/Categoria";
 
 function App() {
     const [spese, setSpese] = useState<Spesa[]>([])
+    const [categorie, setCategorie] = useState<Categoria[]>([])
     const [caricamento, setCaricamento] = useState(true)
     const [erroreCaricamento, setErroreCaricamento] = useState('')
 
@@ -58,20 +60,21 @@ function App() {
         }
   }
   useEffect(() => {
-      async function caricaSpese() {
+      async function caricaDati() {
         try {
-            const dati = await getSpese()
-            setSpese(dati)
+            const [datiSpese, datiCategorie] = await Promise.all([getSpese(), getCategorie()])
+            setSpese(datiSpese)
+            setCategorie(datiCategorie)
         }
         catch (errore){
-            console.error('Errore durante il caricamento delle spese:', errore)
-            setErroreCaricamento('Impossibile caricare le spese')
+            console.error('Errore durante il caricamento delle spese o delle categorie:', errore)
+            setErroreCaricamento('Impossibile caricare i dati')
         }
         finally {
             setCaricamento(false)
         }
       }
-      void caricaSpese()
+      void caricaDati()
   }, [])
   return (
     <>
@@ -81,9 +84,9 @@ function App() {
         ): erroreCaricamento ? (
             <p>{erroreCaricamento}</p>
             ): (
-            <ListaSpese spese={spese} onEliminaSpesa={eliminaSpesa} onModificaSpesa={modificaSpesa}/>
+            <ListaSpese spese={spese} onEliminaSpesa={eliminaSpesa} onModificaSpesa={modificaSpesa} categorie={categorie}/>
         )}
-      <FormSpesa onAggiungiSpesa={aggiungiSpesa}/>
+      <FormSpesa onAggiungiSpesa={aggiungiSpesa} categorie={categorie}/>
     </>
   )
 }

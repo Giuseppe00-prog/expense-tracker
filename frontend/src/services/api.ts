@@ -1,4 +1,5 @@
 import type {NuovaSpesa, Spesa, RispostaCreazioneSpesa} from "../types/Spesa"
+import type {Categoria} from "../types/Categoria.ts";
 
 const API_URL = import.meta.env.VITE_API_URL
 
@@ -52,4 +53,14 @@ export async function aggiornaSpesa(id: number, spesaModificata: NuovaSpesa): Pr
     if(!risposta.ok) {
         throw new Error(`Errore HTTP: ${risposta.status}`)
     }
+}
+
+export async function getCategorie(): Promise<Categoria[]> {
+    const response = await fetch(`${API_URL}/categorie`)
+
+    if(!response.ok) {
+        throw new Error(`Errore HTTP: ${response.status}`)
+    }
+
+    return response.json()
 }

@@ -9,7 +9,9 @@ from services.gestione_spese import (
     elimina_spesa,
     recupera_spese, SpesaNonTrovataError
 )
-
+from services.gestione_categorie import (
+    recupera_categorie
+)
 app = FastAPI()
 
 origins = [
@@ -62,10 +64,16 @@ class SpesaResponseData(BaseModel):
     descrizione: str
     categoria: str
     importo: float
+
+class CategoriaResponseData(BaseModel):
+    id: int
+    nome: str
 @app.get("/")
 def read_root():
     """Restituisce un messaggio informativo sull'API."""
     return {"message": "Expense Tracker API"}
+
+#SPESE
 
 @app.get("/spese", response_model=list[SpesaResponseData])
 def recupero_spese_api():
@@ -142,3 +150,15 @@ def modifica_spesa_api(id_spesa: int, spesa: SpesaRequest):
         "importo": spesa_aggiornata.importo
     }
 
+# CATEGORIE
+
+@app.get("/categorie", response_model=list[CategoriaResponseData])
+def recupero_categorie_api():
+    categorie = recupera_categorie()
+    return [
+        {
+            "id": categoria.id,
+            "nome": categoria.nome
+        }
+        for categoria in categorie
+    ]

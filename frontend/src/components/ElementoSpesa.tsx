@@ -1,12 +1,14 @@
 import type {NuovaSpesa,Spesa as SpesaType} from '../types/Spesa'
 import {useState} from "react";
+import type {Categoria} from "../types/Categoria.ts";
 
 type ElementoSpesaProps = SpesaType & {
     onEliminaSpesa: (id:number) => Promise<boolean>,
-    onModificaSpesa: (id:number, spesa: NuovaSpesa) => Promise<boolean>
+    onModificaSpesa: (id:number, spesa: NuovaSpesa) => Promise<boolean>,
+    categorie: Categoria[]
 }
 
-function ElementoSpesa({id, descrizione, categoria, importo, onEliminaSpesa, onModificaSpesa}: ElementoSpesaProps) {
+function ElementoSpesa({id, descrizione, categoria, importo, onEliminaSpesa, onModificaSpesa, categorie}: ElementoSpesaProps) {
     const [eliminazione, setEliminazione] = useState(false)
     const [errore, setErrore] = useState('')
     const [modifica, setModifica] = useState(false)
@@ -87,7 +89,6 @@ function ElementoSpesa({id, descrizione, categoria, importo, onEliminaSpesa, onM
                         Modifica
                     </button>
                     <button onClick={() => void handleElimina()} disabled={eliminazione}>{eliminazione ? 'Eliminazione ...' : 'Elimina'}</button>
-                    {errore && <p>{errore}</p>}
                 </>
             ): (
                 <>
@@ -95,10 +96,14 @@ function ElementoSpesa({id, descrizione, categoria, importo, onEliminaSpesa, onM
                         value={descrizioneModificata}
                         onChange={(event) => setDescrizioneModificata(event.target.value)}
                     />
-                    <input
-                        value={categoriaModificata}
-                        onChange={(event)=>setCategoriaModificata(event.target.value)}
-                    />
+                    <select required value={categoriaModificata} onChange={(event) => setCategoriaModificata(event.target.value)}>
+                        <option value="">Seleziona una categoria</option>
+                        {
+                        categorie.map(categoria =>
+                            <option key={categoria.id} value={categoria.nome}>{categoria.nome}</option>
+                        )
+                        }
+                    </select>
                     <input
                         type="number"
                         min="0.01"
@@ -119,6 +124,7 @@ function ElementoSpesa({id, descrizione, categoria, importo, onEliminaSpesa, onM
                     </button>
                 </>
             )}
+            {errore && <p>{errore}</p>}
         </>
     )
 }

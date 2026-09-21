@@ -1,11 +1,13 @@
 import {useState, type SyntheticEvent} from 'react'
 import type {NuovaSpesa} from "../types/Spesa";
+import type {Categoria} from "../types/Categoria.ts";
 
 type FormSpesaProps = {
     onAggiungiSpesa: (spesa: NuovaSpesa) => Promise<boolean>
+    categorie: Categoria[]
 }
 
-function FormSpesa({onAggiungiSpesa}: FormSpesaProps) {
+function FormSpesa({onAggiungiSpesa, categorie}: FormSpesaProps) {
     const [descrizione, setDescrizione] = useState('')
     const [categoria, setCategoria] = useState('')
     const [importo, setImporto] = useState('')
@@ -55,7 +57,14 @@ function FormSpesa({onAggiungiSpesa}: FormSpesaProps) {
                 <label htmlFor='descrizione'>Descrizione</label>
                 <input required id='descrizione' value={descrizione} onChange={(event) => setDescrizione(event.target.value)}/>
                 <label htmlFor='categoria'>Categoria</label>
-                <input required id='categoria' value={categoria} onChange={(event) => setCategoria(event.target.value)} />
+                <select required value={categoria} onChange={(event) => setCategoria(event.target.value)}>
+                    <option value="">Seleziona una categoria</option>
+                    {
+                    categorie.map(categoria =>
+                        <option key={categoria.id} value={categoria.nome}>{categoria.nome}</option>
+                    )
+                    }
+                </select>
                 <label htmlFor='importo'>Importo</label>
                 <input required id='importo' min='0.01' step='0.01' type='number' value={importo} onChange={(event) => setImporto(event.target.value)} />
                 <button type="submit" disabled={salvataggio}>Aggiungi spesa</button>

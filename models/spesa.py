@@ -1,8 +1,9 @@
 from decimal import Decimal
-from sqlalchemy import ForeignKey, Numeric, String
+from sqlalchemy import ForeignKey, Numeric, String, Date
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from models.base import Base
 from models.categoria import Categoria
+from datetime import date
 
 class Spesa(Base):
     """Rappresenta una spesa con descrizione, categoria e importo."""
@@ -21,6 +22,10 @@ class Spesa(Base):
         ForeignKey("categorie.id"),
         nullable=False
     )
+    data: Mapped[date] = mapped_column(
+        Date,
+        nullable=False
+    )
 
     categoria:Mapped[Categoria]= relationship()
 
@@ -29,6 +34,7 @@ class Spesa(Base):
             descrizione: str,
             categoria: Categoria,
             importo: Decimal,
+            data: date,
             id: int | None = None
     ):
         """Valida i dati della spesa dopo la sua creazione."""
@@ -44,6 +50,7 @@ class Spesa(Base):
         self.descrizione = descrizione
         self.importo = importo
         self.categoria = categoria
+        self.data = data
 
         if id is not None:
             self.id = id

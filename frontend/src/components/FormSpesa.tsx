@@ -11,6 +11,7 @@ function FormSpesa({onAggiungiSpesa, categorie}: FormSpesaProps) {
     const [descrizione, setDescrizione] = useState('')
     const [categoria, setCategoria] = useState('')
     const [importo, setImporto] = useState('')
+    const [data, setData] = useState('')
     const [errore, setErrore] = useState('')
     const [salvataggio, setSalvataggio] = useState(false)
 
@@ -19,7 +20,8 @@ function FormSpesa({onAggiungiSpesa, categorie}: FormSpesaProps) {
         if (
             descrizione.trim() === '' ||
             categoria.trim() === '' ||
-            Number(importo) <= 0
+            Number(importo) <= 0 ||
+            data.trim() === ''
          ) {
             setErrore('Compila tutti i campi correttamente')
             return
@@ -28,7 +30,8 @@ function FormSpesa({onAggiungiSpesa, categorie}: FormSpesaProps) {
         const nuovaSpesa: NuovaSpesa = {
             descrizione: descrizione,
             categoria: categoria,
-            importo: Number(importo)
+            importo: Number(importo),
+            data: data
         }
 
         setSalvataggio(true)
@@ -39,6 +42,7 @@ function FormSpesa({onAggiungiSpesa, categorie}: FormSpesaProps) {
                 setCategoria('')
                 setImporto('')
                 setErrore('')
+                setData('')
             } else {
                 setErrore('Errore durante il salvataggio della spesa')
             }
@@ -67,6 +71,14 @@ function FormSpesa({onAggiungiSpesa, categorie}: FormSpesaProps) {
                 </select>
                 <label htmlFor='importo'>Importo</label>
                 <input required id='importo' min='0.01' step='0.01' type='number' value={importo} onChange={(event) => setImporto(event.target.value)} />
+                <label htmlFor="data">Data</label>
+                <input
+                    id="data"
+                    type="date"
+                    required
+                    value={data}
+                    onChange={(event) => setData(event.target.value)}
+                />
                 <button type="submit" disabled={salvataggio}>Aggiungi spesa</button>
             </form>
 

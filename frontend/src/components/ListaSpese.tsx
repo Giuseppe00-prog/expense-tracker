@@ -16,7 +16,7 @@ function ListaSpese({spese, onEliminaSpesa, onModificaSpesa, categorie}: ListaSp
                 spese.length === 0 ? (
                     <p>Nessuna spesa presente.</p>
                 ) : (
-                    spese.map(spesa => <ElementoSpesa key={spesa.id} id={spesa.id} descrizione={spesa.descrizione} categoria={spesa.categoria} importo={spesa.importo} onEliminaSpesa={onEliminaSpesa} onModificaSpesa={onModificaSpesa} categorie={categorie}/>)
+                    spese.map(spesa => <ElementoSpesa key={spesa.id} id={spesa.id} descrizione={spesa.descrizione} categoria={spesa.categoria} importo={spesa.importo} data={spesa.data} onEliminaSpesa={onEliminaSpesa} onModificaSpesa={onModificaSpesa} categorie={categorie}/>)
                 )
             }
         </>

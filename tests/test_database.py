@@ -1,3 +1,5 @@
+import datetime
+
 import pytest
 from sqlalchemy.exc import IntegrityError
 from decimal import Decimal
@@ -98,7 +100,8 @@ def test_inserisci_spesa(database_test):
     spesa = Spesa(
         descrizione="Pizza",
         categoria=categoria,
-        importo=Decimal("12.50")
+        importo=Decimal("12.50"),
+        data=datetime.date.today()
     )
 
     id_spesa = inserisci_spesa(spesa)
@@ -113,7 +116,8 @@ def test_recupera_singola_spesa(database_test):
     spesa = Spesa(
         descrizione="Pizza",
         categoria=categoria,
-        importo=Decimal("12.50")
+        importo=Decimal("12.50"),
+        data=datetime.date.today()
     )
     id_spesa = inserisci_spesa(spesa)
 
@@ -137,7 +141,8 @@ def test_leggi_spese(database_test):
     spesa1 = Spesa(
         descrizione="Pizza",
         categoria=categoria1,
-        importo=Decimal("12.50")
+        importo=Decimal("12.50"),
+        data=datetime.date.today()
     )
     id_spesa1 = inserisci_spesa(spesa1)
 
@@ -148,7 +153,8 @@ def test_leggi_spese(database_test):
     spesa2 = Spesa(
         descrizione="Benzina",
         categoria=categoria2,
-        importo=Decimal("50.37")
+        importo=Decimal("50.37"),
+        data=datetime.date.today()
     )
     id_spesa2 = inserisci_spesa(spesa2)
 
@@ -169,7 +175,8 @@ def test_rimuovi_spesa(database_test):
     spesa = Spesa(
         descrizione="Pizza",
         categoria=categoria,
-        importo=Decimal("12.50")
+        importo=Decimal("12.50"),
+        data=datetime.date.today()
     )
     id_spesa = inserisci_spesa(spesa)
     assert rimuovi_spesa(id_spesa)
@@ -188,7 +195,8 @@ def test_aggiorna_spesa(database_test):
     spesa = Spesa(
         descrizione="Pizza",
         categoria=categoria_cibo,
-        importo=Decimal("12.50")
+        importo=Decimal("12.50"),
+        data=datetime.date.today()
     )
 
     spesa.id = inserisci_spesa(spesa)
@@ -207,4 +215,4 @@ def test_aggiorna_spesa(database_test):
     assert spesa_db.categoria.nome == "Svago"
 
 def test_aggiorna_spesa_non_esistente(database_test):
-    assert not aggiorna_spesa(Spesa(id=99, descrizione="Panino", categoria=Categoria(id=99, nome="Cibo"), importo=Decimal("12.50")))
+    assert not aggiorna_spesa(Spesa(id=99, descrizione="Panino", categoria=Categoria(id=99, nome="Cibo"),  data=datetime.date.today(), importo=Decimal("12.50")))

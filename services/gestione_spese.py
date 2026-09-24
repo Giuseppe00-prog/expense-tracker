@@ -18,7 +18,7 @@ class SpesaNonTrovataError(Exception):
     pass
 
 
-def aggiungi_spesa(descrizione, nome_categoria, importo):
+def aggiungi_spesa(descrizione, nome_categoria, importo, data):
     try:
         categoria = trova_categoria_tramite_nome(nome_categoria)
     except CategoriaNonTrovataError:
@@ -27,7 +27,8 @@ def aggiungi_spesa(descrizione, nome_categoria, importo):
     nuova_spesa = Spesa(
         descrizione,
         categoria,
-        importo
+        importo,
+        data
     )
     nuova_spesa.id = inserisci_spesa(nuova_spesa)
     return nuova_spesa
@@ -52,7 +53,7 @@ def recupera_spesa(id_spesa):
 def recupera_spese():
     return leggi_spese()
 
-def modifica_spesa(id_spesa, descrizione, nome_categoria, importo):
+def modifica_spesa(id_spesa, descrizione, nome_categoria, importo, data):
     if recupera_singola_spesa(id_spesa) is None:
         raise SpesaNonTrovataError("L'id spesa non è associato a nessuna spesa esistente")
 
@@ -65,6 +66,7 @@ def modifica_spesa(id_spesa, descrizione, nome_categoria, importo):
         descrizione,
         categoria,
         importo,
+        data,
         id = id_spesa
     )
     aggiorna_spesa(spesa)

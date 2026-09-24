@@ -1,3 +1,5 @@
+import datetime
+
 import pytest
 from decimal import Decimal
 from models.spesa import Spesa
@@ -5,7 +7,7 @@ from models.categoria import Categoria
 
 def test_spesa():
     categoria = Categoria("Cibo")
-    spesa = Spesa("Pizza", categoria, Decimal("5.00"))
+    spesa = Spesa("Pizza", categoria, Decimal("5.00"), datetime.date.today())
 
     assert isinstance(spesa, Spesa)
     assert spesa.descrizione == "Pizza"
@@ -16,8 +18,8 @@ def test_spesa():
 
 def test_spesa_descrizione_solo_spazi():
     with pytest.raises(ValueError):
-        Spesa("          ", Categoria("Cibo"), Decimal("5.00"))
+        Spesa("          ", Categoria("Cibo"), Decimal("5.00"), datetime.date.today())
 
 def test_spesa_importo_negativo():
     with pytest.raises(ValueError):
-        Spesa("Pizza",Categoria("Cibo"), Decimal("-5.00"))
+        Spesa("Pizza",Categoria("Cibo"), Decimal("-5.00"), datetime.date.today())

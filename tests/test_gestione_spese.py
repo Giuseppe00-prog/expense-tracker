@@ -1,3 +1,5 @@
+import datetime
+
 import pytest
 from models.categoria import Categoria
 from services.gestione_spese import aggiungi_spesa, modifica_spesa, recupera_spesa, elimina_spesa, SpesaNonTrovataError, \
@@ -10,21 +12,21 @@ def test_aggiungi_spesa_categoria_esistente(database_test):
     categoria = Categoria("Test")
     categoria.id = inserisci_categoria(categoria)
 
-    spesa = aggiungi_spesa("test", "Test", Decimal("12.50"))
+    spesa = aggiungi_spesa("test", "Test", Decimal("12.50"), datetime.date.today())
 
     assert spesa.descrizione == "test"
     assert spesa.categoria.nome == "Test"
     assert spesa.importo == Decimal("12.50")
 
 def test_aggiungi_spesa_categoria_non_esistente(database_test):
-    spesa = aggiungi_spesa("test", "Test", Decimal("12.50"))
+    spesa = aggiungi_spesa("test", "Test", Decimal("12.50"), datetime.date.today())
 
     assert spesa.descrizione == "test"
     assert spesa.categoria.nome == "Test"
     assert spesa.importo == Decimal("12.50")
 
 def test_recupero_spesa_esistente(database_test):
-    spesa = aggiungi_spesa("test", "Test", Decimal("12.50"))
+    spesa = aggiungi_spesa("test", "Test", Decimal("12.50"), datetime.date.today())
 
     spesa_db = recupera_spesa(spesa.id)
 
@@ -38,8 +40,8 @@ def test_recupero_spesa_non_esistente(database_test):
         recupera_spesa(99)
 
 def test_recupero_spese(database_test):
-    aggiungi_spesa("test", "Test", Decimal("12.50"))
-    aggiungi_spesa("Prova", "Prova", Decimal("22.50"))
+    aggiungi_spesa("test", "Test", Decimal("12.50"), datetime.date.today())
+    aggiungi_spesa("Prova", "Prova", Decimal("22.50"), datetime.date.today())
 
     lista_spese = recupera_spese()
 
@@ -52,7 +54,7 @@ def test_recupero_spese(database_test):
 
 
 def test_elimina_spesa_esistente(database_test):
-    spesa = aggiungi_spesa("test", "Test", Decimal("12.50"))
+    spesa = aggiungi_spesa("test", "Test", Decimal("12.50"), datetime.date.today())
 
     risultato = elimina_spesa(spesa.id)
 
@@ -66,9 +68,9 @@ def test_elimina_spesa_non_esistente(database_test):
         elimina_spesa(99)
 
 def test_modifica_spesa_con_categoria_esistente(database_test):
-    spesa = aggiungi_spesa("test", "Test", Decimal("12.50"))
+    spesa = aggiungi_spesa("test", "Test", Decimal("12.50"), datetime.date.today())
 
-    modifica_spesa(spesa.id, "Nuovo", "Test", Decimal("15.50"))
+    modifica_spesa(spesa.id, "Nuovo", "Test", Decimal("15.50"), datetime.date.today())
 
     spesa_db = recupera_spesa(spesa.id)
 
@@ -78,9 +80,9 @@ def test_modifica_spesa_con_categoria_esistente(database_test):
     assert spesa_db.categoria.nome == "Test"
 
 def test_modifica_spesa_con_categoria_non_esistente(database_test):
-    spesa = aggiungi_spesa("test", "Test", Decimal("12.50"))
+    spesa = aggiungi_spesa("test", "Test", Decimal("12.50"), datetime.date.today())
 
-    modifica_spesa(spesa.id, "Nuovo", "Altro", Decimal("15.50"))
+    modifica_spesa(spesa.id, "Nuovo", "Altro", Decimal("15.50"),datetime.date.today())
 
     spesa_db = recupera_spesa(spesa.id)
 
@@ -97,4 +99,4 @@ def test_modifica_spesa_con_categoria_non_esistente(database_test):
 
 def test_modifica_spesa_con_id_non_esistente(database_test):
     with pytest.raises(SpesaNonTrovataError):
-        modifica_spesa(99, "Test", "Test", Decimal("12.50"))
+        modifica_spesa(99, "Test", "Test", Decimal("12.50"), datetime.date.today())

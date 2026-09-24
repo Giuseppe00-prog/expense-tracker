@@ -1,3 +1,4 @@
+import datetime
 from decimal import Decimal
 import pytest
 from services.gestione_categorie import aggiungi_categoria, trova_categoria_tramite_id, trova_categoria_tramite_nome, recupera_categorie, modifica_categoria, \
@@ -64,7 +65,7 @@ def test_elimina_categoria_non_trovata(database_test):
 
 def test_elimina_categoria_in_uso(database_test):
     categoria = aggiungi_categoria("Test")
-    aggiungi_spesa("Prova", "Test", Decimal("12.50"))
+    aggiungi_spesa("Prova", "Test", Decimal("12.50"), datetime.date.today())
     with pytest.raises(CategoriaInUsoError):
         elimina_categoria(categoria.id)
 

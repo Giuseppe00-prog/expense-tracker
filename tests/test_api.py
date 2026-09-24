@@ -1,3 +1,4 @@
+from datetime import date
 from decimal import Decimal
 
 import pytest
@@ -18,7 +19,7 @@ def test_lista_spese_vuota(client):
     assert risposta.json() == []
 
 def test_aggiungi_spesa(client):
-    risposta = client.post("/spese", json={"descrizione": "Pizza", "categoria": "cibo", "importo": 12.50})
+    risposta = client.post("/spese", json={"descrizione": "Pizza", "categoria": "cibo", "importo": 12.50, "data": date.today().isoformat()})
 
     assert risposta.status_code == 201
 
@@ -35,13 +36,14 @@ def test_aggiungi_spesa(client):
 
     assert dati_spesa["descrizione"] == "Pizza"
     assert dati_spesa["id"] == id_spesa
+    assert dati_spesa["data"] == date.today().isoformat()
 
 @pytest.mark.parametrize(
     "payload, messaggio_atteso",
     [
-        ({"descrizione": "Pizza", "categoria": "cibo", "importo": -10},"L'importo non può essere negativo"),
-        ({"descrizione": "Pizza", "categoria": "     ", "importo": 10}, "La descrizione e la categoria non possono essere vuote"),
-        ({"descrizione": "     ", "categoria": "cibo", "importo": 10}, "La descrizione e la categoria non possono essere vuote")
+        ({"descrizione": "Pizza", "categoria": "cibo", "importo": -10, "data":date.today().isoformat()},"L'importo non può essere negativo"),
+        ({"descrizione": "Pizza", "categoria": "     ", "importo": 10, "data":date.today().isoformat()}, "La descrizione e la categoria non possono essere vuote"),
+        ({"descrizione": "     ", "categoria": "cibo", "importo": 10, "data":date.today().isoformat()}, "La descrizione e la categoria non possono essere vuote")
     ]
 )
 def test_aggiungi_spesa_non_valido(client, payload, messaggio_atteso):
@@ -55,7 +57,8 @@ def test_recupero_spesa_tramite_id(client):
     risposta_post = client.post("/spese",     json={
         "descrizione": "Pizza",
         "categoria": "Cibo",
-        "importo": 12.50
+        "importo": 12.50,
+        "data": date.today().isoformat()
     })
     id_spesa = risposta_post.json()["id"]
 
@@ -65,7 +68,8 @@ def test_recupero_spesa_tramite_id(client):
         "id": id_spesa,
         "descrizione": "Pizza",
         "categoria": "Cibo",
-        "importo": 12.50
+        "importo": 12.50,
+        "data": date.today().isoformat()
     }
 
 def test_recupero_spesa_tramite_id_non_valido(client):
@@ -79,7 +83,7 @@ def test_recupero_spesa_tramite_id_stringa(client):
     assert risposta.status_code == 422
 
 def test_rimuovi_spesa(client):
-    risposta_post = client.post("/spese", json={"descrizione": "Pizza", "categoria": "cibo", "importo": 12.50})
+    risposta_post = client.post("/spese", json={"descrizione": "Pizza", "categoria": "cibo", "importo": 12.50, "data":date.today().isoformat()})
 
     id_spesa = risposta_post.json()["id"]
     risposta_rimozione = client.delete(f"/spese/{id_spesa}")
@@ -99,10 +103,10 @@ def test_rimuovi_spesa_non_valido(client):
     assert risposta.status_code == 404
 
 def test_aggiorna_spesa_esistente(client):
-    risposta_post = client.post("/spese", json={"descrizione": "Pizza", "categoria": "cibo", "importo": 12.50})
+    risposta_post = client.post("/spese", json={"descrizione": "Pizza", "categoria": "cibo", "importo": 12.50, "data":date.today().isoformat()})
     id_spesa = risposta_post.json()["id"]
 
-    risposta_modifica = client.put(f"/spese/{id_spesa}", json={"descrizione": "Panino", "categoria": "Cibo", "importo": 13.50})
+    risposta_modifica = client.put(f"/spese/{id_spesa}", json={"descrizione": "Panino", "categoria": "Cibo", "importo": 13.50, "data":date.today().isoformat()})
 
     assert risposta_modifica.status_code == 200
 
@@ -111,6 +115,7 @@ def test_aggiorna_spesa_esistente(client):
     assert dati["id"] == id_spesa
     assert dati["descrizione"] == "Panino"
     assert dati["categoria"] == "Cibo"
+    assert dati["data"] == date.today().isoformat()
 
     risposta_get = client.get(f"/spese/{id_spesa}")
 

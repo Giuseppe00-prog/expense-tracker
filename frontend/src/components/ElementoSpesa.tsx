@@ -8,19 +8,21 @@ type ElementoSpesaProps = SpesaType & {
     categorie: Categoria[]
 }
 
-function ElementoSpesa({id, descrizione, categoria, importo, onEliminaSpesa, onModificaSpesa, categorie}: ElementoSpesaProps) {
+function ElementoSpesa({id, descrizione, categoria, importo, data, onEliminaSpesa, onModificaSpesa, categorie}: ElementoSpesaProps) {
     const [eliminazione, setEliminazione] = useState(false)
     const [errore, setErrore] = useState('')
     const [modifica, setModifica] = useState(false)
     const [descrizioneModificata, setDescrizioneModificata] = useState(descrizione)
     const [categoriaModificata, setCategoriaModificata] = useState(categoria)
     const [importoModificato, setImportoModificato] = useState(importo.toString())
+    const [dataModificata, setDataModificata] = useState(data)
     const [salvataggioModifica, setSalvataggioModifica] = useState(false)
 
     function annullaModifica() {
         setDescrizioneModificata(descrizione)
         setCategoriaModificata(categoria)
         setImportoModificato(importo.toString())
+        setDataModificata(data)
         setErrore('')
         setModifica(false)
     }
@@ -43,7 +45,8 @@ function ElementoSpesa({id, descrizione, categoria, importo, onEliminaSpesa, onM
         if (
             descrizioneModificata.trim() === '' ||
             categoriaModificata.trim() === '' ||
-            Number(importoModificato) <= 0
+            Number(importoModificato) <= 0 ||
+            dataModificata.trim() === ''
         ) {
             setErrore('Compila tutti i campi correttamente')
             return
@@ -52,7 +55,8 @@ function ElementoSpesa({id, descrizione, categoria, importo, onEliminaSpesa, onM
         const spesaModificata: NuovaSpesa = {
             descrizione: descrizioneModificata,
             categoria: categoriaModificata,
-            importo: Number(importoModificato)
+            importo: Number(importoModificato),
+            data: dataModificata
         }
 
         setSalvataggioModifica(true)
@@ -65,6 +69,7 @@ function ElementoSpesa({id, descrizione, categoria, importo, onEliminaSpesa, onM
                 setDescrizioneModificata(spesaModificata.descrizione)
                 setCategoriaModificata(spesaModificata.categoria)
                 setImportoModificato(spesaModificata.importo.toString())
+                setDataModificata(spesaModificata.data)
                 setModifica(false)
             } else {
                 setErrore('Impossibile modificare la spesa')
@@ -84,6 +89,9 @@ function ElementoSpesa({id, descrizione, categoria, importo, onEliminaSpesa, onM
                         Categoria - {categoria}
                         <br/>
                         Importo - {importo.toFixed(2)} €
+                        <br/>
+                        Data - {data}
+                        <br/>
                     </p>
                     <button onClick={() => setModifica(true)}>
                         Modifica
@@ -111,7 +119,7 @@ function ElementoSpesa({id, descrizione, categoria, importo, onEliminaSpesa, onM
                         value={importoModificato}
                         onChange={(event) => setImportoModificato(event.target.value)}
                     />
-
+                    <input required type="date" value={dataModificata} onChange={(event) => setDataModificata(event.target.value)} />
                     <button
                         onClick={() => void handleModifica()}
                         disabled={salvataggioModifica}

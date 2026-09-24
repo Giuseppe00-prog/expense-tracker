@@ -1,3 +1,5 @@
+from datetime import date
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, field_validator
@@ -30,6 +32,7 @@ class SpesaRequest(BaseModel):
     descrizione: str
     categoria: str
     importo: Decimal
+    data: date
 
     @field_validator("descrizione", "categoria")
     @classmethod
@@ -64,6 +67,7 @@ class SpesaResponseData(BaseModel):
     descrizione: str
     categoria: str
     importo: float
+    data: date
 
 class CategoriaResponseData(BaseModel):
     id: int
@@ -83,14 +87,15 @@ def recupero_spese_api():
                 "id": spesa.id,
                 "descrizione": spesa.descrizione,
                 "categoria": spesa.categoria.nome,
-                "importo": spesa.importo
+                "importo": spesa.importo,
+                "data": spesa.data,
             }
             for spesa in spese
         ]
 
 @app.post("/spese", status_code=201, response_model=OperazioneResponse)
 def aggiungi_spesa_api(spesa: SpesaRequest):
-    nuova_spesa = aggiungi_spesa(spesa.descrizione, spesa.categoria, spesa.importo)
+    nuova_spesa = aggiungi_spesa(spesa.descrizione, spesa.categoria, spesa.importo, spesa.data)
     return {
         "message": "Spesa aggiunta con successo",
         "id": nuova_spesa.id
@@ -127,6 +132,7 @@ def recupera_spesa_api(id_spesa: int):
         "descrizione": spesa.descrizione,
         "categoria": spesa.categoria.nome,
         "importo": spesa.importo,
+        "data": spesa.data
     }
 @app.put("/spese/{id_spesa}", response_model=SpesaResponseData)
 def modifica_spesa_api(id_spesa: int, spesa: SpesaRequest):
@@ -136,7 +142,7 @@ def modifica_spesa_api(id_spesa: int, spesa: SpesaRequest):
             spesa.descrizione,
             spesa.categoria,
             spesa.importo,
-
+            spesa.data
         )
     except SpesaNonTrovataError:
         raise HTTPException(
@@ -147,7 +153,8 @@ def modifica_spesa_api(id_spesa: int, spesa: SpesaRequest):
         "id": spesa_aggiornata.id,
         "descrizione": spesa_aggiornata.descrizione,
         "categoria": spesa_aggiornata.categoria.nome,
-        "importo": spesa_aggiornata.importo
+        "importo": spesa_aggiornata.importo,
+        "data": spesa_aggiornata.data
     }
 
 # CATEGORIE
